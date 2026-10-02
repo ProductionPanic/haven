@@ -95,6 +95,7 @@ one of the subcommands.`,
 		a.importCmd(),
 		a.exportCmd(),
 		a.cpCmd(),
+		a.filesCmd(),
 	)
 	return root
 }

@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 
 	"github.com/ProductionPanic/rootnet-cli/internal/sshx"
 	"github.com/ProductionPanic/rootnet-cli/internal/store"
+	"github.com/ProductionPanic/rootnet-cli/internal/tui/files"
 	"github.com/ProductionPanic/rootnet-cli/internal/tui/hostform"
 	"github.com/ProductionPanic/rootnet-cli/internal/tui/hosts"
 	"github.com/ProductionPanic/rootnet-cli/internal/tui/theme"
@@ -29,6 +31,8 @@ type Store interface {
 	Update(ctx context.Context, h store.Host) (store.Host, error)
 	Delete(ctx context.Context, id int64) error
 	MarkUsed(ctx context.Context, id int64) error
+	Dirs(ctx context.Context, hostID int64) (local, remote string, err error)
+	SaveDirs(ctx context.Context, hostID int64, local, remote string) error
 }
 
 type (
@@ -55,6 +59,7 @@ type App struct {
 	theme theme.Theme
 
 	hosts hosts.Model
+	files *files.Model // non-nil while the file manager is open
 
 	form      *huh.Form
 	fields    *hostform.Fields
@@ -112,9 +117,15 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.BackgroundColorMsg:
 		a.theme = theme.New(msg.IsDark())
 		a.hosts.SetTheme(a.theme)
+		if a.files != nil {
+			a.files.SetTheme(a.theme)
+		}
 	case tea.WindowSizeMsg:
 		a.width, a.height = msg.Width, msg.Height
 		a.hosts.SetSize(msg.Width-2, msg.Height-2) // margin + status line
+		if a.files != nil {
+			a.files.SetSize(msg.Width, msg.Height)
+		}
 		if a.form != nil {
 			a.form = a.form.WithWidth(a.formWidth()).WithHeight(a.formHeight())
 		}
@@ -137,6 +148,9 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return a, nil
 	}
 
+	if a.files != nil {
+		return a.updateFiles(msg)
+	}
 	if a.form != nil {
 		return a.updateForm(msg)
 	}
@@ -151,6 +165,8 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		h := msg.Host
 		a.connectHost = &h
 		return a, tea.Quit
+	case hosts.FilesMsg:
+		return a, a.openFiles(msg.Host)
 	case hosts.ShellMsg:
 		return a, a.shell(msg.Host)
 	case shellDoneMsg:
@@ -180,6 +196,44 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	var cmd tea.Cmd
 	a.hosts, cmd = a.hosts.Update(msg)
+	return a, cmd
+}
+
+func (a *App) openFiles(h store.Host) tea.Cmd {
+	cfg := FilesConfig(a.ctx, a.store, h)
+	f := files.New(a.ctx, a.theme, cfg)
+	f.SetSize(a.width, a.height)
+	a.files = &f
+	_ = a.store.MarkUsed(a.ctx, h.ID)
+	return f.Init()
+}
+
+// FilesConfig builds the file manager config for h, restoring the
+// directories used last time.
+func FilesConfig(ctx context.Context, s Store, h store.Host) files.Config {
+	cfg := files.Config{Host: h, Dial: sshx.DialSFTP, Workers: 4}
+	local, remote, _ := s.Dirs(ctx, h.ID)
+	if local != "" {
+		if fi, err := os.Stat(local); err == nil && fi.IsDir() {
+			cfg.LocalDir = local
+		}
+	}
+	cfg.RemoteDir = remote
+	return cfg
+}
+
+func (a App) updateFiles(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if c, ok := msg.(files.CloseMsg); ok {
+		a.files = nil
+		_ = a.store.SaveDirs(a.ctx, c.Host.ID, c.LocalDir, c.RemoteDir)
+		return a, a.load(c.Host.ID)
+	}
+	if k, ok := msg.(tea.KeyPressMsg); ok && k.String() == "ctrl+c" {
+		a.files.Close()
+		return a, tea.Quit
+	}
+	f, cmd := a.files.Update(msg)
+	a.files = &f
 	return a, cmd
 }
 
@@ -277,6 +331,12 @@ func (a App) updateConfirm(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (a App) View() tea.View {
+	if a.files != nil {
+		v := tea.NewView(a.files.View())
+		v.AltScreen = true
+		v.WindowTitle = "rootnet · " + a.files.Host().Name
+		return v
+	}
 	base := lipgloss.NewStyle().Margin(0, 1).Render(a.hosts.View())
 	status := ""
 	if a.status != "" {

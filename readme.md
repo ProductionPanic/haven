@@ -40,6 +40,8 @@ rootnet ls                   list hosts (--tag, --recent, --json)
 rootnet add [name] [user@host] [flags]   add a host; without a destination an interactive form opens
 rootnet edit <query> [flags] edit a host; without field flags an interactive form opens
 rootnet rm <query>           remove a host (asks for confirmation unless --yes)
+rootnet files [query]        two-pane file manager (local ↔ host)
+rootnet cp <src>... <dst>    copy files, e.g. rootnet cp ./dump.sql appel:/tmp/
 rootnet import [file]        import TOML or the legacy "name | user@host" format
 rootnet export               export as TOML or ssh_config (--format ssh-config -o ~/.ssh/config.d/rootnet)
 rootnet completion zsh|bash|fish
@@ -63,10 +65,49 @@ command).
 | `t` | cycle through tags |
 | `g` | group by server |
 | `a` / `e` / `d` | add / edit / delete |
+| `f` | open the file manager for the host (`q` comes back) |
 | `y` | copy `user@host` to the clipboard (OSC 52, works over ssh too) |
 | `?` | all key bindings |
 
 Production hosts get a red badge and an extra warning before deletion.
+
+### File manager
+
+`rootnet files appel` (or `f` in the host manager) shows your local files on
+the left and the host on the right, starting in the host's remote path. Both
+sides remember where you left off per host.
+
+| Key | Action |
+|-----|--------|
+| `tab` | switch pane |
+| `enter` / `⌫` | open directory / go up |
+| `space`, `*` | mark, mark all |
+| `c` | copy marked (or selected) items to the other pane, directories recursively |
+| `m` / `r` / `d` | mkdir / rename / delete (with confirmation) |
+| `.` / `s` / `/` | hidden files / cycle sort / filter |
+| `x` | cancel running transfers |
+
+When a file already exists you can overwrite, skip, overwrite if newer or keep
+both, optionally for all remaining files. Production hosts get an extra warning.
+
+`rootnet cp` uses the same engine from the command line, with `host:path` for
+remote locations (relative remote paths start in the login directory):
+
+```bash
+rootnet cp ./dump.sql appel:/tmp/
+rootnet cp appel:/var/www/site/wp-config.php .
+rootnet cp --newer ./theme appel:wp-content/themes/
+```
+
+Transfers run over your normal `ssh` (same `~/.ssh/config`, keys and agent,
+including 1Password's SSH agent) using the SFTP subsystem, with several files
+in flight at once. Files are written as `name.rootnet-part` and only renamed
+into place when complete, so a cancelled upload never leaves a half-written
+file behind. Modification times and permissions are preserved.
+
+The file manager connects without prompting in the terminal (`BatchMode`), so
+hosts need key or agent authentication; if a host's key isn't known yet,
+connect once with `rootnet ssh <host>` first.
 
 ### Storage
 

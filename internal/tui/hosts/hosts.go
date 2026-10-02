@@ -26,6 +26,7 @@ import (
 type (
 	ConnectMsg struct{ Host store.Host } // ssh and exit
 	ShellMsg   struct{ Host store.Host } // ssh and come back
+	FilesMsg   struct{ Host store.Host } // open the file manager
 	AddMsg     struct{}
 	EditMsg    struct{ Host store.Host }
 	DeleteMsg  struct{ Host store.Host }
@@ -340,6 +341,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case key.Matches(k, m.Keys.Help):
 		m.help.ShowAll = !m.help.ShowAll
 		m.clampScroll()
+	case key.Matches(k, m.Keys.Files):
+		return m, selected(func(h store.Host) tea.Msg { return FilesMsg{h} })
 	case key.Matches(k, m.Keys.Shell):
 		return m, selected(func(h store.Host) tea.Msg { return ShellMsg{h} })
 	case key.Matches(k, m.Keys.Add):

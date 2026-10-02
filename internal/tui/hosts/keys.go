@@ -6,9 +6,9 @@ import "charm.land/bubbles/v2/key"
 type KeyMap struct {
 	Up, Down, PageUp, PageDown, Home, End key.Binding
 
-	Connect, Shell, Add, Edit, Delete, Copy key.Binding
-	Tag, Group, Filter, ClearFilter         key.Binding
-	Help, Quit                              key.Binding
+	Connect, Shell, Files, Add, Edit, Delete, Copy key.Binding
+	Tag, Group, Filter, ClearFilter                key.Binding
+	Help, Quit                                     key.Binding
 }
 
 // DefaultKeyMap returns the default bindings.
@@ -23,6 +23,7 @@ func DefaultKeyMap() KeyMap {
 
 		Connect: key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "ssh")),
 		Shell:   key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "ssh & return")),
+		Files:   key.NewBinding(key.WithKeys("f"), key.WithHelp("f", "files")),
 		Add:     key.NewBinding(key.WithKeys("a"), key.WithHelp("a", "add")),
 		Edit:    key.NewBinding(key.WithKeys("e"), key.WithHelp("e", "edit")),
 		Delete:  key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "delete")),
@@ -40,14 +41,14 @@ func DefaultKeyMap() KeyMap {
 
 // ShortHelp implements help.KeyMap.
 func (k KeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Connect, k.Filter, k.Add, k.Edit, k.Delete, k.Copy, k.Help, k.Quit}
+	return []key.Binding{k.Connect, k.Files, k.Filter, k.Add, k.Edit, k.Delete, k.Copy, k.Help, k.Quit}
 }
 
 // FullHelp implements help.KeyMap.
 func (k KeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Up, k.Down, k.PageUp, k.PageDown, k.Home, k.End},
-		{k.Connect, k.Shell, k.Copy},
+		{k.Connect, k.Shell, k.Files, k.Copy},
 		{k.Add, k.Edit, k.Delete},
 		{k.Filter, k.ClearFilter, k.Tag, k.Group},
 		{k.Help, k.Quit},

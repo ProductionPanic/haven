@@ -173,6 +173,7 @@ func TestActions(t *testing.T) {
 		"d": func(msg tea.Msg) bool { d, ok := msg.(DeleteMsg); return ok && d.Host.ID == 1 },
 		"y": func(msg tea.Msg) bool { c, ok := msg.(CopyMsg); return ok && c.Host.Target() == "web@monotone" },
 		"s": func(msg tea.Msg) bool { s, ok := msg.(ShellMsg); return ok && s.Host.ID == 1 },
+		"f": func(msg tea.Msg) bool { f, ok := msg.(FilesMsg); return ok && f.Host.ID == 1 },
 		"q": func(msg tea.Msg) bool { _, ok := msg.(QuitMsg); return ok },
 	}
 	for k, check := range cases {

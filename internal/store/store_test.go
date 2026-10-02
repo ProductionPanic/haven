@@ -109,3 +109,21 @@ func TestReopenKeepsData(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestDirs(t *testing.T) {
+	ctx := context.Background()
+	s := openTemp(t)
+	h, _ := s.Create(ctx, Host{Name: "a", Hostname: "b"})
+	if l, r, err := s.Dirs(ctx, h.ID); err != nil || l != "" || r != "" {
+		t.Fatalf("empty Dirs = %q %q %v", l, r, err)
+	}
+	s.SaveDirs(ctx, h.ID, "/home/me/site", "/var/www")
+	s.SaveDirs(ctx, h.ID, "/home/me/site2", "/var/www")
+	if l, r, _ := s.Dirs(ctx, h.ID); l != "/home/me/site2" || r != "/var/www" {
+		t.Fatalf("Dirs = %q %q", l, r)
+	}
+	s.Delete(ctx, h.ID)
+	if l, _, _ := s.Dirs(ctx, h.ID); l != "" {
+		t.Error("state not removed with host")
+	}
+}
