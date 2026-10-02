@@ -535,14 +535,14 @@ func (e *Engine) resolveConflict(ctx context.Context, b *batch, f *File) (target
 		}
 		return f.DstPath, false, nil
 	case RenameNew:
-		return freeName(dst, f.DstPath), false, nil
+		return FreeName(dst, f.DstPath), false, nil
 	default:
 		return f.DstPath, false, nil
 	}
 }
 
-// freeName returns "name (n).ext" for the first n that doesn't exist.
-func freeName(fsys vfs.FS, p string) string {
+// FreeName returns "name (n).ext" for the first n that doesn't exist.
+func FreeName(fsys vfs.FS, p string) string {
 	dir, base := fsys.Dir(p), fsys.Base(p)
 	stem, ext := base, ""
 	for i := len(base) - 1; i > 0; i-- {

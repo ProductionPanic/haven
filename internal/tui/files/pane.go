@@ -221,8 +221,11 @@ func (p *pane) view(t theme.Theme, focused bool, now time.Time) string {
 	if n := len(p.marked); n > 0 {
 		info += fmt.Sprintf(" · %d marked", n)
 	}
-	head := titleStyle.Render(ansi.TruncateLeft(title, max(0, lipgloss.Width(title)-(inner-lipgloss.Width(info))), "…")) +
-		t.Faint.Render(info)
+	// Keep the end of long paths: drop from the left, marking the cut with "…".
+	if cut := lipgloss.Width(title) - (inner - lipgloss.Width(info)); cut > 0 {
+		title = ansi.TruncateLeft(title, cut+1, "…")
+	}
+	head := titleStyle.Render(title) + t.Faint.Render(info)
 
 	var lines []string
 	switch {

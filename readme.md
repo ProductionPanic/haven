@@ -81,12 +81,26 @@ off last time on that host.
 | Key | Action |
 |-----|--------|
 | `tab` | switch pane |
-| `enter` / `⌫` | open directory / go up |
+| `enter` / `⌫` | open directory or view file / go up |
+| `e` | edit the file in `$EDITOR` (vim, nvim, …) |
+| `n` | new file (opens it in your editor) |
 | `space`, `*` | mark, mark all |
 | `c` | copy marked (or selected) items to the other pane, directories recursively |
 | `m` / `r` / `d` | mkdir / rename / delete (with confirmation) |
 | `.` / `s` / `/` | hidden files / cycle sort / filter |
 | `x` | cancel running transfers |
+
+`enter` on a file opens a read-only viewer with syntax highlighting, line
+numbers and vim-style keys (`j/k`, `ctrl+d/u`, `g/G`, `/` search with `n/N`,
+`w` wrap, `e` edit, `q` close). It reads at most the first 1 MB, so peeking
+at a large log is instant.
+
+`e` edits in your own editor (`$VISUAL`, `$EDITOR`, else nvim/vim/vi/nano).
+Remote files are downloaded to a temporary copy and uploaded back only if you
+changed them, atomically (no half-written file on the server). If the server
+copy changed while you were editing, rootnet asks whether to overwrite it,
+keep both, or not upload (your edit is kept locally). Production hosts ask
+before uploading. Binary files and files over 20 MB ask or refuse first.
 
 Files and folders get [Nerd Font](https://www.nerdfonts.com) icons by type
 (PHP, JS, images, archives, `wp-config.php`, `wp-content/`, `Dockerfile`, …).

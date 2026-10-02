@@ -81,6 +81,7 @@ const (
 	promptMkdir
 	promptRename
 	promptFilter
+	promptNewFile
 )
 
 // Model is the file manager.
@@ -109,6 +110,11 @@ type Model struct {
 
 	confirmDelete []string
 	confirmSide   int
+
+	viewer    *viewer
+	editing   *editSession
+	question  *question
+	runEditor func(file string) tea.Cmd
 
 	status    string
 	statusErr bool
@@ -139,6 +145,7 @@ func New(ctx context.Context, t theme.Theme, cfg Config) Model {
 		input:   textinput.New(),
 		now:     time.Now,
 	}
+	m.runEditor = execEditor
 	m.panes[left] = newPane(cfg.LocalFS.Name())
 	m.panes[left].icons = cfg.Icons
 	m.panes[left].fs = cfg.LocalFS
@@ -162,6 +169,9 @@ func (m *Model) SetSize(w, h int) {
 	m.width, m.height = w, h
 	m.help.SetWidth(w)
 	m.layout()
+	if m.viewer != nil {
+		m.viewer.setSize(w, h)
+	}
 }
 
 func (m *Model) layout() {
@@ -238,6 +248,9 @@ func (m Model) Host() store.Host { return m.cfg.Host }
 func (m Model) Close() {
 	m.stop()
 	m.engine.CancelAll()
+	if m.editing != nil {
+		m.editing.cleanup()
+	}
 	if m.remote != nil {
 		m.remote.Close()
 	}
@@ -290,6 +303,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case engineMsg:
 		return m.handleEngine(msg.ev)
 
+	case viewerLoadedMsg:
+		if m.viewer != nil && m.viewer.path == msg.path {
+			m.viewer.loaded(msg)
+		}
+		return m, nil
+
 	case clearStatus:
 		if msg.seq == m.statusSeq {
 			m.status = ""
@@ -298,6 +317,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	case tea.KeyPressMsg:
 		return m.handleKey(msg)
+	}
+
+	if m2, cmd, ok := m.handleEditMsg(msg); ok {
+		return m2, cmd
 	}
 
 	if m.prompt != promptNone {
@@ -343,12 +366,34 @@ func (m Model) handleEngine(ev transfer.Event) (Model, tea.Cmd) {
 
 func (m Model) handleKey(k tea.KeyPressMsg) (Model, tea.Cmd) {
 	switch {
+	case m.question != nil:
+		o, ok := m.question.answer(k.String())
+		if !ok {
+			return m, nil
+		}
+		m.question = nil
+		if o.run == nil {
+			return m, nil
+		}
+		cmd := o.run(&m)
+		return m, cmd
 	case m.conflict != nil:
 		return m.handleConflictKey(k)
 	case m.confirmDelete != nil:
 		return m.handleDeleteKey(k)
 	case m.prompt != promptNone:
 		return m.handlePromptKey(k)
+	case m.viewer != nil:
+		v := m.viewer
+		closeIt, edit, cmd := v.update(k)
+		switch {
+		case closeIt:
+			m.viewer = nil
+		case edit:
+			m.viewer = nil
+			return m, m.startEdit(v.side, v.entry, v.binary)
+		}
+		return m, cmd
 	}
 
 	p := m.panes[m.active]
@@ -387,6 +432,18 @@ func (m Model) handleKey(k tea.KeyPressMsg) (Model, tea.Cmd) {
 		if e.IsDir {
 			p.loading = true
 			return m, m.list(m.active, p.fs.Join(p.cwd, e.Name), "")
+		}
+		path := p.fs.Join(p.cwd, e.Name)
+		m.viewer = newViewer(m.active, p.label, e, path)
+		m.viewer.setSize(m.width, m.height)
+		return m, loadForView(p.fs, path, m.theme.IsDark)
+	case key.Matches(k, m.Keys.Edit):
+		if e, ok := p.selected(); ok {
+			return m, m.startEdit(m.active, e, false)
+		}
+	case key.Matches(k, m.Keys.NewFile):
+		if p.fs != nil && p.cwd != "" {
+			return m, m.openPrompt(promptNewFile, "New file: ", "", "")
 		}
 	case key.Matches(k, m.Keys.Parent):
 		return m, m.up(p)
@@ -481,6 +538,14 @@ func (m Model) handlePromptKey(k tea.KeyPressMsg) (Model, tea.Cmd) {
 		switch kind {
 		case promptFilter:
 			return m, nil
+		case promptNewFile:
+			if value == "" {
+				return m, nil
+			}
+			if strings.ContainsAny(value, "/") {
+				return m, m.setStatus("Name may not contain /", true)
+			}
+			return m, createFile(m.active, p.fs, p.fs.Join(p.cwd, value))
 		case promptMkdir:
 			if value == "" {
 				return m, nil
@@ -608,6 +673,16 @@ func errorf(isErr bool, s string) error {
 func (m Model) View() string {
 	t := m.theme
 	now := m.now()
+	if m.viewer != nil {
+		v := m.viewer.view(t, func(k viewerKeys) string { return m.help.ShortHelpView(k.ShortHelp()) })
+		switch {
+		case m.question != nil:
+			return m.overlay(v, m.question.view(t))
+		case m.conflict != nil:
+			return m.overlay(v, m.conflictView())
+		}
+		return v
+	}
 	panes := lipgloss.JoinHorizontal(lipgloss.Top,
 		m.panes[left].view(t, m.active == left, now),
 		m.panes[right].view(t, m.active == right, now))
@@ -634,11 +709,18 @@ func (m Model) View() string {
 
 	var overlay string
 	switch {
+	case m.question != nil:
+		overlay = m.question.view(t)
 	case m.conflict != nil:
 		overlay = m.conflictView()
 	case m.confirmDelete != nil:
 		overlay = m.deleteView()
 	}
+	return m.overlay(base, overlay)
+}
+
+// overlay centres box over base.
+func (m Model) overlay(base, overlay string) string {
 	if overlay == "" || m.width == 0 {
 		return base
 	}
