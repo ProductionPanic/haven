@@ -11,7 +11,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 
-	"github.com/ProductionPanic/rootnet-cli/internal/store"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/store"
 )
 
 type tomlFile struct {

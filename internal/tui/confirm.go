@@ -4,7 +4,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
-	"github.com/ProductionPanic/rootnet-cli/internal/tui/theme"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui/theme"
 )
 
 // confirm is a small yes/no dialog. "No" is selected by default.

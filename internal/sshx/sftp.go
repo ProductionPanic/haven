@@ -11,8 +11,8 @@ import (
 
 	"github.com/pkg/sftp"
 
-	"github.com/ProductionPanic/rootnet-cli/internal/store"
-	"github.com/ProductionPanic/rootnet-cli/internal/vfs"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/store"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/vfs"
 )
 
 // SFTPArgs returns the ssh argv (excluding "ssh") that starts the sftp

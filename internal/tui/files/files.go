@@ -19,10 +19,10 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/ProductionPanic/rootnet-cli/internal/store"
-	"github.com/ProductionPanic/rootnet-cli/internal/transfer"
-	"github.com/ProductionPanic/rootnet-cli/internal/tui/theme"
-	"github.com/ProductionPanic/rootnet-cli/internal/vfs"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/store"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/transfer"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui/theme"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/vfs"
 )
 
 // Dialer opens the remote file system for a host.

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/ProductionPanic/rootnet-cli/internal/store"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/store"
 )
 
 // Options returns the ssh options for h (port, identity, jump host and

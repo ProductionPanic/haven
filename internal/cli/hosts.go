@@ -14,11 +14,11 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/ProductionPanic/rootnet-cli/internal/match"
-	"github.com/ProductionPanic/rootnet-cli/internal/store"
-	"github.com/ProductionPanic/rootnet-cli/internal/tui/hostform"
-	"github.com/ProductionPanic/rootnet-cli/internal/tui/picker"
-	"github.com/ProductionPanic/rootnet-cli/internal/tui/theme"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/match"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/store"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui/hostform"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui/picker"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui/theme"
 )
 
 func (a *app) getCmd() *cobra.Command {

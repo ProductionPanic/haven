@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ProductionPanic/rootnet-cli/internal/store"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/store"
 )
 
 func names(hs []store.Host) []string {

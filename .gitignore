@@ -1,2 +1,5 @@
 .idea
 rootnet-cli
+/main
+/rootnet
+.DS_Store
