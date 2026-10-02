@@ -153,7 +153,7 @@ func New(ctx context.Context, t theme.Theme, cfg Config) Model {
 // SetTheme applies a theme.
 func (m *Model) SetTheme(t theme.Theme) {
 	m.theme = t
-	m.help.Styles = help.DefaultStyles(t.IsDark)
+	m.help.Styles = t.Help()
 	m.input.SetStyles(textinput.DefaultStyles(t.IsDark))
 }
 
