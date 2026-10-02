@@ -17,8 +17,8 @@ func (a *app) filesCmd() *cobra.Command {
 		Aliases: []string{"fm"},
 		Short:   "Two-pane file manager: local on the left, the host on the right",
 		Long: `Browse a host's files next to your local ones and copy between them.
-The remote side starts in the host's remote path; both sides remember
-where you left off. Files are transferred over ssh with the same config
+The local side starts in the current directory. The remote side starts in
+the host's remote path, or where you left off last time. Files are transferred over ssh with the same config
 as connecting.`,
 		ValidArgsFunction: a.completeHosts,
 		RunE: func(cmd *cobra.Command, args []string) error {

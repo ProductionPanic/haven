@@ -74,8 +74,9 @@ Production hosts get a red badge and an extra warning before deletion.
 ### File manager
 
 `rootnet files appel` (or `f` in the host manager) shows your local files on
-the left and the host on the right, starting in the host's remote path. Both
-sides remember where you left off per host.
+the left and the host on the right. The local side starts in your current
+directory; the remote side starts in the host's remote path, or where you left
+off last time on that host.
 
 | Key | Action |
 |-----|--------|

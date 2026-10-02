@@ -174,3 +174,20 @@ func TestConnectResult(t *testing.T) {
 		t.Fatalf("connectHost = %+v", h)
 	}
 }
+
+func TestFilesConfigStartsInCwd(t *testing.T) {
+	_, s := setup(t)
+	ctx := context.Background()
+	h, _ := s.Get(ctx, "alpha.nl")
+	s.SaveDirs(ctx, h.ID, t.TempDir(), "/var/www/site")
+
+	cwd := t.TempDir()
+	t.Chdir(cwd)
+	cfg := FilesConfig(ctx, s, h)
+	if cfg.LocalDir != cwd {
+		t.Errorf("LocalDir = %q, want current directory %q", cfg.LocalDir, cwd)
+	}
+	if cfg.RemoteDir != "/var/www/site" {
+		t.Errorf("RemoteDir = %q, want the remembered one", cfg.RemoteDir)
+	}
+}
