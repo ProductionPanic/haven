@@ -19,6 +19,7 @@ import (
 	"github.com/ProductionPanic/rootnet-cli/internal/match"
 	"github.com/ProductionPanic/rootnet-cli/internal/sshx"
 	"github.com/ProductionPanic/rootnet-cli/internal/store"
+	"github.com/ProductionPanic/rootnet-cli/internal/tui"
 	"github.com/ProductionPanic/rootnet-cli/internal/tui/picker"
 )
 
@@ -59,11 +60,13 @@ func (a *app) rootCmd() *cobra.Command {
 		Short: "Find and connect to your servers",
 		Long: `rootnet keeps a list of servers and connects to them over ssh.
 
-With a query, rootnet connects straight away when exactly one host matches
-and opens a picker otherwise. Results are ranked by how often and how
+Without arguments, rootnet opens the host manager. With a query, it
+connects straight away when exactly one host matches and opens a picker
+otherwise. Results are ranked by how often and how
 recently you used them. Use "rootnet ssh <query>" when a host is named like
 one of the subcommands.`,
-		Example: `  rootnet appel              # connect to appelenburg.nl
+		Example: `  rootnet                    # open the host manager
+  rootnet appel              # connect to appelenburg.nl
   rootnet get appel          # print web@server for use in scripts
   rootnet add                # add a host interactively
   scp dump.sql $(rootnet get appel):/tmp/`,
@@ -74,12 +77,16 @@ one of the subcommands.`,
 			return a.open(cmd.ErrOrStderr())
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				return a.ui(cmd.Context())
+			}
 			return a.connect(cmd.Context(), strings.Join(args, " "))
 		},
 	}
 	root.PersistentFlags().StringVar(&a.dbPath, "db", "", "database path (default $ROOTNET_DB or ~/.config/rootnet/rootnet.db)")
 	root.AddCommand(
 		a.sshCmd(),
+		a.uiCmd(),
 		a.getCmd(),
 		a.lsCmd(),
 		a.addCmd(),
@@ -229,6 +236,29 @@ func interactive() bool {
 	return true
 }
 
+func (a *app) uiCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "ui",
+		Short: "Open the host manager (also what plain \"rootnet\" does)",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return a.ui(cmd.Context())
+		},
+	}
+}
+
+// ui runs the full-screen host manager and connects to the host chosen there.
+func (a *app) ui(ctx context.Context) error {
+	if !interactive() {
+		return errors.New("the host manager needs a terminal")
+	}
+	h, err := tui.Run(ctx, a.store)
+	if err != nil || h == nil {
+		return err
+	}
+	return a.exec(ctx, *h)
+}
+
 func (a *app) connect(ctx context.Context, query string) error {
 	h, err := a.resolve(ctx, query)
 	if errors.Is(err, picker.ErrCancelled) {
@@ -237,6 +267,11 @@ func (a *app) connect(ctx context.Context, query string) error {
 	if err != nil {
 		return err
 	}
+	return a.exec(ctx, h)
+}
+
+// exec records the connection and replaces rootnet with ssh.
+func (a *app) exec(ctx context.Context, h store.Host) error {
 	args, err := sshx.ConnectArgs(h)
 	if err != nil {
 		return err

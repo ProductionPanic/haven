@@ -32,6 +32,7 @@ This installs a binary called `rootnet`.
 ## Usage
 
 ```
+rootnet                      open the host manager (also: rootnet ui)
 rootnet [query]              connect (unique match → ssh, otherwise a picker)
 rootnet ssh <query>          explicit connect (for hosts named like a subcommand)
 rootnet get [query]          print user@host  (--format '{{.User}}@{{.Hostname}}:{{.Port}}', --json)
@@ -46,6 +47,26 @@ rootnet completion zsh|bash|fish
 
 When a host has a remote path, `rootnet` logs in and `cd`s there:
 `ssh -t user@host 'cd /var/www/site && exec "$SHELL" -l'`.
+
+### Host manager
+
+`rootnet` without arguments opens a full-screen manager: a filterable host
+list with a detail panel (all fields, notes, last use and the exact ssh
+command).
+
+| Key | Action |
+|-----|--------|
+| `enter` | ssh to the host (rootnet exits and becomes ssh) |
+| `s` | ssh and return to the manager afterwards |
+| `/` | filter (typing filters live, `enter` connects to the selection) |
+| `esc` | leave the filter, press again to clear it |
+| `t` | cycle through tags |
+| `g` | group by server |
+| `a` / `e` / `d` | add / edit / delete |
+| `y` | copy `user@host` to the clipboard (OSC 52, works over ssh too) |
+| `?` | all key bindings |
+
+Production hosts get a red badge and an extra warning before deletion.
 
 ### Storage
 

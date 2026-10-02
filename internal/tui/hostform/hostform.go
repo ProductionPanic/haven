@@ -23,7 +23,7 @@ var Environments = []string{"", "production", "staging", "development"}
 // Fields holds the form's string-typed values and converts to and from a Host.
 type Fields struct {
 	Name, User, Hostname, Port, IdentityFile, JumpHost string
-	RemotePath, ExtraArgs, Notes, Environment, Tags     string
+	RemotePath, ExtraArgs, Notes, Environment, Tags    string
 }
 
 // FromHost fills form fields from h.
