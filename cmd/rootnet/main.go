@@ -7,9 +7,9 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/list"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/list"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 const hostsPath = "/rootnet_hosts.txt"
@@ -32,16 +32,21 @@ type model struct {
 	quitting bool
 }
 
-func (m model) Init() tea.Cmd { return nil }
+func (m model) Init() tea.Cmd { return tea.RequestBackgroundColor }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.BackgroundColorMsg:
+		d := list.NewDefaultDelegate()
+		d.Styles = list.NewDefaultItemStyles(msg.IsDark())
+		m.list.SetDelegate(d)
+		m.list.Styles = list.DefaultStyles(msg.IsDark())
+	case tea.KeyPressMsg:
 		if msg.String() == "ctrl+c" {
 			m.quitting = true
 			return m, tea.Quit
 		}
-		if msg.String() == "enter" {
+		if msg.String() == "enter" && m.list.FilterState() != list.Filtering {
 			i, ok := m.list.SelectedItem().(item)
 			if ok {
 				m.choice = i.host
@@ -58,10 +63,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m model) View() string {
-	return docStyle.Render(m.list.View())
+func (m model) View() tea.View {
+	v := tea.NewView(docStyle.Render(m.list.View()))
+	v.AltScreen = true
+	return v
 }
-
 // -- Application Logic --
 
 func getHostsFile() string {
@@ -146,10 +152,9 @@ func runFilter(search string, outputOnly bool) string {
 	m := model{list: list.New(uiItems, list.NewDefaultDelegate(), 0, 0)}
 	m.list.Title = "Rootnet Projects"
 
-	// If we're in "get" mode, we need to hide the TUI from stdout
-	// so the connection string is the only thing the shell sees.
-	// Bubble Tea uses stderr for the UI by default, which is perfect.
-	p := tea.NewProgram(m, tea.WithAltScreen())
+	// Render the TUI to stderr so that stdout only ever carries the result.
+	// This keeps `ssh $(rootnet get foo)` working when the picker opens.
+	p := tea.NewProgram(m, tea.WithOutput(os.Stderr))
 	finalModel, err := p.Run()
 	if err != nil {
 		return ""
