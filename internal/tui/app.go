@@ -15,12 +15,12 @@ import (
 	"charm.land/huh/v2"
 	"charm.land/lipgloss/v2"
 
-	"github.com/ProductionPanic/rootnet-cli/internal/sshx"
-	"github.com/ProductionPanic/rootnet-cli/internal/store"
-	"github.com/ProductionPanic/rootnet-cli/internal/tui/files"
-	"github.com/ProductionPanic/rootnet-cli/internal/tui/hostform"
-	"github.com/ProductionPanic/rootnet-cli/internal/tui/hosts"
-	"github.com/ProductionPanic/rootnet-cli/internal/tui/theme"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/sshx"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/store"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui/files"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui/hostform"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui/hosts"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui/theme"
 )
 
 // Store is the subset of *store.Store the app needs.

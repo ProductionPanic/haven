@@ -10,8 +10,8 @@ import (
 
 	"charm.land/huh/v2"
 
-	"github.com/ProductionPanic/rootnet-cli/internal/sshx"
-	"github.com/ProductionPanic/rootnet-cli/internal/store"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/sshx"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/store"
 )
 
 // ErrCancelled is returned when the user aborts the form.

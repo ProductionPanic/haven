@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ProductionPanic/rootnet-cli/internal/vfs"
-	"github.com/ProductionPanic/rootnet-cli/internal/vfs/vfstest"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/vfs"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/vfs/vfstest"
 )
 
 func mkfile(t *testing.T, p, content string, mtime time.Time) {

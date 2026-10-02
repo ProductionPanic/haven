@@ -6,9 +6,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/ProductionPanic/rootnet-cli/internal/tui"
-	"github.com/ProductionPanic/rootnet-cli/internal/tui/files"
-	"github.com/ProductionPanic/rootnet-cli/internal/tui/picker"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui/files"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui/picker"
 )
 
 func (a *app) filesCmd() *cobra.Command {

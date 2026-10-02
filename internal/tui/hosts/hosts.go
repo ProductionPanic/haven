@@ -16,10 +16,10 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/ProductionPanic/rootnet-cli/internal/match"
-	"github.com/ProductionPanic/rootnet-cli/internal/sshx"
-	"github.com/ProductionPanic/rootnet-cli/internal/store"
-	"github.com/ProductionPanic/rootnet-cli/internal/tui/theme"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/match"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/sshx"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/store"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui/theme"
 )
 
 // Messages emitted for the root app to act on.

@@ -12,9 +12,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/ProductionPanic/rootnet-cli/internal/sshx"
-	"github.com/ProductionPanic/rootnet-cli/internal/transfer"
-	"github.com/ProductionPanic/rootnet-cli/internal/vfs"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/sshx"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/transfer"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/vfs"
 )
 
 // location is a cp argument: a local path or host:path.

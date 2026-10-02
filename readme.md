@@ -22,7 +22,7 @@ See [docs/PLAN.md](docs/PLAN.md) for the v2 roadmap.
 
 ### 2. Build & Install
 ```bash
-go install github.com/ProductionPanic/rootnet-cli/cmd/rootnet@latest
+go install github.com/ProductionPanic/rootnet-cli/v2/cmd/rootnet@latest
 ```
 
 This installs a binary called `rootnet`.

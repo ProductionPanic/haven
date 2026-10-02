@@ -5,7 +5,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/ProductionPanic/rootnet-cli/internal/tui/theme"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui/theme"
 )
 
 // standalone runs the file manager as its own program.

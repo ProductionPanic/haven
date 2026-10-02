@@ -15,12 +15,12 @@ import (
 	"github.com/charmbracelet/x/term"
 	"github.com/spf13/cobra"
 
-	"github.com/ProductionPanic/rootnet-cli/internal/legacy"
-	"github.com/ProductionPanic/rootnet-cli/internal/match"
-	"github.com/ProductionPanic/rootnet-cli/internal/sshx"
-	"github.com/ProductionPanic/rootnet-cli/internal/store"
-	"github.com/ProductionPanic/rootnet-cli/internal/tui"
-	"github.com/ProductionPanic/rootnet-cli/internal/tui/picker"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/legacy"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/match"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/sshx"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/store"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui/picker"
 )
 
 // app carries state shared by all commands.

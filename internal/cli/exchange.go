@@ -9,9 +9,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/ProductionPanic/rootnet-cli/internal/exchange"
-	"github.com/ProductionPanic/rootnet-cli/internal/legacy"
-	"github.com/ProductionPanic/rootnet-cli/internal/store"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/exchange"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/legacy"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/store"
 )
 
 func (a *app) importCmd() *cobra.Command {

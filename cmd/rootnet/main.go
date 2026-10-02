@@ -5,7 +5,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/ProductionPanic/rootnet-cli/internal/cli"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/cli"
 )
 
 func main() {
