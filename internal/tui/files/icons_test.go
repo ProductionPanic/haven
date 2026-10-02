@@ -8,8 +8,8 @@ import (
 
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/ProductionPanic/rootnet-cli/internal/tui/theme"
-	"github.com/ProductionPanic/rootnet-cli/internal/vfs"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui/theme"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/vfs"
 )
 
 func TestIconFor(t *testing.T) {

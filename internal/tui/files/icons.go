@@ -7,8 +7,8 @@ import (
 
 	"charm.land/lipgloss/v2"
 
-	"github.com/ProductionPanic/rootnet-cli/internal/transfer"
-	"github.com/ProductionPanic/rootnet-cli/internal/vfs"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/transfer"
+	"github.com/ProductionPanic/rootnet-cli/v2/internal/vfs"
 )
 
 // IconsFromEnv reports whether Nerd Font icons should be shown. They are on
