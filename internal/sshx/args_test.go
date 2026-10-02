@@ -65,3 +65,14 @@ func TestQuote(t *testing.T) {
 		}
 	}
 }
+
+func TestSFTPArgs(t *testing.T) {
+	got, err := SFTPArgs(store.Host{User: "u", Hostname: "h", Port: 2222, JumpHost: "j", RemotePath: "/x"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"-o", "BatchMode=yes", "-o", "ServerAliveInterval=15", "-p", "2222", "-J", "j", "-s", "u@h", "sftp"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %q\nwant %q", got, want)
+	}
+}

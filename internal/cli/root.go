@@ -94,6 +94,7 @@ one of the subcommands.`,
 		a.rmCmd(),
 		a.importCmd(),
 		a.exportCmd(),
+		a.cpCmd(),
 	)
 	return root
 }
