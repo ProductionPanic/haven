@@ -80,7 +80,7 @@ func New(t theme.Theme) Model {
 // SetTheme applies a theme.
 func (m *Model) SetTheme(t theme.Theme) {
 	m.theme = t
-	m.help.Styles = help.DefaultStyles(t.IsDark)
+	m.help.Styles = t.Help()
 	s := textinput.DefaultStyles(t.IsDark)
 	s.Focused.Prompt = s.Focused.Prompt.Foreground(t.Accent)
 	m.filter.SetStyles(s)
