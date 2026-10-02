@@ -208,17 +208,12 @@ func (a *App) openFiles(h store.Host) tea.Cmd {
 	return f.Init()
 }
 
-// FilesConfig builds the file manager config for h, restoring the
-// directories used last time.
+// FilesConfig builds the file manager config for h. The local side starts
+// in the current directory; the remote side resumes where it was left.
 func FilesConfig(ctx context.Context, s Store, h store.Host) files.Config {
 	cfg := files.Config{Host: h, Dial: sshx.DialSFTP, Workers: 4}
-	local, remote, _ := s.Dirs(ctx, h.ID)
-	if local != "" {
-		if fi, err := os.Stat(local); err == nil && fi.IsDir() {
-			cfg.LocalDir = local
-		}
-	}
-	cfg.RemoteDir = remote
+	cfg.LocalDir, _ = os.Getwd()
+	_, cfg.RemoteDir, _ = s.Dirs(ctx, h.ID)
 	return cfg
 }
 
