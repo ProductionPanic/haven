@@ -88,6 +88,11 @@ off last time on that host.
 | `.` / `s` / `/` | hidden files / cycle sort / filter |
 | `x` | cancel running transfers |
 
+Files and folders get [Nerd Font](https://www.nerdfonts.com) icons by type
+(PHP, JS, images, archives, `wp-config.php`, `wp-content/`, `Dockerfile`, …).
+If your terminal font isn't a Nerd Font, turn them off with
+`export ROOTNET_ICONS=off` to get plain markers instead.
+
 When a file already exists you can overwrite, skip, overwrite if newer or keep
 both, optionally for all remaining files. Production hosts get an extra warning.
 

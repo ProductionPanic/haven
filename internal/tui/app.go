@@ -211,7 +211,7 @@ func (a *App) openFiles(h store.Host) tea.Cmd {
 // FilesConfig builds the file manager config for h. The local side starts
 // in the current directory; the remote side resumes where it was left.
 func FilesConfig(ctx context.Context, s Store, h store.Host) files.Config {
-	cfg := files.Config{Host: h, Dial: sshx.DialSFTP, Workers: 4}
+	cfg := files.Config{Host: h, Dial: sshx.DialSFTP, Workers: 4, Icons: files.IconsFromEnv()}
 	cfg.LocalDir, _ = os.Getwd()
 	_, cfg.RemoteDir, _ = s.Dirs(ctx, h.ID)
 	return cfg
