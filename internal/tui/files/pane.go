@@ -26,6 +26,7 @@ type pane struct {
 	offset  int
 	marked  map[string]bool
 
+	icons      bool // Nerd Font icons
 	showHidden bool
 	sortBy     vfs.SortBy
 	filter     string
@@ -248,22 +249,11 @@ func (p *pane) row(t theme.Theme, e vfs.Entry, active, cursor bool, w int, now t
 	if p.marked[e.Name] {
 		mark = lipgloss.NewStyle().Foreground(t.Warning).Bold(true).Render("*")
 	}
-	icon := "  "
 	name := e.Name
-	switch {
-	case e.Name == parentName:
-		icon = "  "
-	case e.Link != "" && e.Broken:
-		icon = "! "
-	case e.Link != "" && e.IsDir:
-		icon = "↪ "
-		name += "/"
-	case e.Link != "":
-		icon = "↪ "
-	case e.IsDir:
-		icon = "▸ "
+	if e.IsDir && e.Name != parentName {
 		name += "/"
 	}
+	icon := p.icon(t, e)
 
 	size, date := "", ""
 	if e.Name != parentName {
@@ -296,6 +286,35 @@ func (p *pane) row(t theme.Theme, e vfs.Entry, active, cursor bool, w int, now t
 		return mark + "›" + icon + style.Render(name) + pad + " " + t.Faint.Render(right)
 	}
 	return mark + " " + icon + style.Render(name) + pad + " " + t.Faint.Render(right)
+}
+
+// icon returns the two-cell prefix shown before a name: a coloured Nerd
+// Font glyph, or a plain marker when icons are off.
+func (p *pane) icon(t theme.Theme, e vfs.Entry) string {
+	if !p.icons {
+		switch {
+		case e.Name == parentName:
+			return "  "
+		case e.Link != "" && e.Broken:
+			return "! "
+		case e.Link != "":
+			return "↪ "
+		case e.IsDir:
+			return "▸ "
+		}
+		return "  "
+	}
+	ic := iconFor(e)
+	c := ic.color
+	switch {
+	case e.Broken:
+		c = t.Danger
+	case c == nil && e.IsDir:
+		c = t.Accent
+	case c == nil:
+		c = t.Muted
+	}
+	return lipgloss.NewStyle().Foreground(c).Render(ic.glyph) + " "
 }
 
 func formatDate(t, now time.Time) string {

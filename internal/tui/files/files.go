@@ -36,6 +36,7 @@ type Config struct {
 	LocalDir  string // start directory on the left
 	RemoteDir string // start directory on the right ("" → host remote path or home)
 	Workers   int
+	Icons     bool // Nerd Font file icons
 }
 
 // CloseMsg is emitted when the user leaves the file manager. LocalDir and
@@ -139,9 +140,11 @@ func New(ctx context.Context, t theme.Theme, cfg Config) Model {
 		now:     time.Now,
 	}
 	m.panes[left] = newPane(cfg.LocalFS.Name())
+	m.panes[left].icons = cfg.Icons
 	m.panes[left].fs = cfg.LocalFS
 	m.panes[left].loading = true
 	m.panes[right] = newPane(cfg.Host.Name)
+	m.panes[right].icons = cfg.Icons
 	m.panes[right].loading = true
 	m.SetTheme(t)
 	return m
