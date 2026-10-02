@@ -67,3 +67,18 @@ func TestRowIconsKeepAlignment(t *testing.T) {
 		}
 	}
 }
+
+func TestLongTitleStaysOnOneLine(t *testing.T) {
+	p := newPane("bengelmedia.nl")
+	p.fs = vfs.LocalFS{}
+	p.cwd = "/projects/bengelmed_da/public_html/wp-content/themes/bengel/assets/build"
+	p.width, p.height = 40, 6
+	out := ansi.Strip(p.view(theme.New(true), true, time.Now()))
+	lines := strings.Split(out, "\n")
+	if !strings.Contains(lines[1], "…") || !strings.HasSuffix(strings.TrimRight(lines[1], " │"), "assets/build") {
+		t.Errorf("title not truncated on the left:\n%s", out)
+	}
+	if strings.Contains(lines[2], "build") {
+		t.Errorf("title wrapped:\n%s", out)
+	}
+}

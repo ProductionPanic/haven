@@ -8,6 +8,7 @@ type KeyMap struct {
 	Switch, Open, Parent, GoHome          key.Binding
 	Mark, MarkAll                         key.Binding
 	Copy, Mkdir, Rename, Delete           key.Binding
+	Edit, NewFile                         key.Binding
 	Hidden, Sort, Filter, Refresh         key.Binding
 	CancelTransfers, Help, Quit           key.Binding
 }
@@ -23,17 +24,19 @@ func DefaultKeyMap() KeyMap {
 		End:      key.NewBinding(key.WithKeys("end", "G"), key.WithHelp("G", "bottom")),
 
 		Switch: key.NewBinding(key.WithKeys("tab", "shift+tab"), key.WithHelp("tab", "switch")),
-		Open:   key.NewBinding(key.WithKeys("enter", "right", "l"), key.WithHelp("enter", "open")),
+		Open:   key.NewBinding(key.WithKeys("enter", "right", "l"), key.WithHelp("enter", "open/view")),
 		Parent: key.NewBinding(key.WithKeys("backspace", "left", "h"), key.WithHelp("⌫", "up a dir")),
 		GoHome: key.NewBinding(key.WithKeys("~"), key.WithHelp("~", "home dir")),
 
 		Mark:    key.NewBinding(key.WithKeys("space"), key.WithHelp("space", "mark")),
 		MarkAll: key.NewBinding(key.WithKeys("*", "ctrl+a"), key.WithHelp("*", "mark all")),
 
-		Copy:   key.NewBinding(key.WithKeys("c", "f5"), key.WithHelp("c", "copy →")),
-		Mkdir:  key.NewBinding(key.WithKeys("m", "f7"), key.WithHelp("m", "mkdir")),
-		Rename: key.NewBinding(key.WithKeys("r", "f6"), key.WithHelp("r", "rename")),
-		Delete: key.NewBinding(key.WithKeys("d", "delete", "f8"), key.WithHelp("d", "delete")),
+		Copy:    key.NewBinding(key.WithKeys("c", "f5"), key.WithHelp("c", "copy →")),
+		Mkdir:   key.NewBinding(key.WithKeys("m", "f7"), key.WithHelp("m", "mkdir")),
+		Edit:    key.NewBinding(key.WithKeys("e", "f4"), key.WithHelp("e", "edit")),
+		NewFile: key.NewBinding(key.WithKeys("n"), key.WithHelp("n", "new file")),
+		Rename:  key.NewBinding(key.WithKeys("r", "f6"), key.WithHelp("r", "rename")),
+		Delete:  key.NewBinding(key.WithKeys("d", "delete", "f8"), key.WithHelp("d", "delete")),
 
 		Hidden:  key.NewBinding(key.WithKeys("."), key.WithHelp(".", "hidden")),
 		Sort:    key.NewBinding(key.WithKeys("s"), key.WithHelp("s", "sort")),
@@ -47,14 +50,14 @@ func DefaultKeyMap() KeyMap {
 }
 
 func (k KeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Switch, k.Mark, k.Copy, k.Mkdir, k.Rename, k.Delete, k.Hidden, k.Help, k.Quit}
+	return []key.Binding{k.Switch, k.Open, k.Edit, k.Mark, k.Copy, k.NewFile, k.Mkdir, k.Rename, k.Delete, k.Help, k.Quit}
 }
 
 func (k KeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Up, k.Down, k.PageUp, k.PageDown, k.Home, k.End},
 		{k.Switch, k.Open, k.Parent, k.GoHome, k.Refresh},
-		{k.Mark, k.MarkAll, k.Copy, k.Mkdir, k.Rename, k.Delete},
+		{k.Mark, k.MarkAll, k.Copy, k.Edit, k.NewFile, k.Mkdir, k.Rename, k.Delete},
 		{k.Hidden, k.Sort, k.Filter, k.CancelTransfers, k.Help, k.Quit},
 	}
 }

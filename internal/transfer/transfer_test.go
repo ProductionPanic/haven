@@ -242,7 +242,7 @@ func TestFreeName(t *testing.T) {
 	dir := t.TempDir()
 	mkfile(t, filepath.Join(dir, "a.tar.gz"), "", t0)
 	mkfile(t, filepath.Join(dir, "a.tar (1).gz"), "", t0)
-	if got := filepath.Base(freeName(vfs.LocalFS{}, filepath.Join(dir, "a.tar.gz"))); got != "a.tar (2).gz" {
+	if got := filepath.Base(FreeName(vfs.LocalFS{}, filepath.Join(dir, "a.tar.gz"))); got != "a.tar (2).gz" {
 		t.Errorf("freeName = %q", got)
 	}
 }
@@ -266,4 +266,22 @@ func TestDstName(t *testing.T) {
 	if readFile(t, filepath.Join(dst, "b.txt")) != "hi" {
 		t.Error("not copied under new name")
 	}
+}
+
+func TestPutFile(t *testing.T) {
+	remote := vfstest.NewRemote(t)
+	dir := t.TempDir()
+	p := filepath.Join(dir, "wp-config.php")
+	mkfile(t, p, "old", t0)
+	os.Chmod(p, 0o600)
+	if err := PutFile(remote, p, strings.NewReader("new"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if got := readFile(t, p); got != "new" {
+		t.Errorf("content %q", got)
+	}
+	if fi, _ := os.Stat(p); fi.Mode().Perm() != 0o600 {
+		t.Errorf("mode %v", fi.Mode())
+	}
+	assertNoParts(t, dir)
 }
