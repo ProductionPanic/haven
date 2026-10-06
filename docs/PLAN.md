@@ -1,5 +1,8 @@
 # Rootnet v2 — Plan
 
+> **Note:** rootnet has since been renamed to **haven**. This plan is kept
+> as written; "rootnet" below refers to the same tool.
+
 This document describes how to grow `rootnet` from a single-file host picker into a
 full SSH companion: credential management, fast search/connect, and a two-pane
 file manager. It's split into phases that can each be merged and used on their own.

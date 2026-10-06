@@ -7,7 +7,7 @@ import (
 
 	"github.com/pkg/sftp"
 
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/vfs"
+	"github.com/ProductionPanic/haven/v2/internal/vfs"
 )
 
 // NewRemote returns a RemoteFS backed by an in-process SFTP server that

@@ -8,8 +8,8 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/store"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui/theme"
+	"github.com/ProductionPanic/haven/v2/internal/store"
+	"github.com/ProductionPanic/haven/v2/internal/tui/theme"
 )
 
 var now = time.Date(2026, 10, 2, 12, 0, 0, 0, time.UTC)

@@ -23,26 +23,71 @@ var migrationFS embed.FS
 // ErrNotFound is returned when a host does not exist.
 var ErrNotFound = errors.New("host not found")
 
-// Store is a handle to the rootnet database.
+// Store is a handle to the haven database.
 type Store struct {
 	db *sql.DB
 }
 
-// DefaultPath returns the database location: $ROOTNET_DB, else
-// $XDG_CONFIG_HOME/rootnet/rootnet.db, else ~/.config/rootnet/rootnet.db.
+// EnvPath returns the database path from $HAVEN_DB, or from $ROOTNET_DB
+// (the tool's former name), or "".
+func EnvPath() string {
+	if p := os.Getenv("HAVEN_DB"); p != "" {
+		return p
+	}
+	return os.Getenv("ROOTNET_DB")
+}
+
+func configDir() (string, error) {
+	if dir := os.Getenv("XDG_CONFIG_HOME"); dir != "" {
+		return dir, nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, ".config"), nil
+}
+
+// DefaultPath returns the database location: $HAVEN_DB (or $ROOTNET_DB),
+// else $XDG_CONFIG_HOME/haven/haven.db, else ~/.config/haven/haven.db.
 func DefaultPath() (string, error) {
-	if p := os.Getenv("ROOTNET_DB"); p != "" {
+	if p := EnvPath(); p != "" {
 		return p, nil
 	}
-	dir := os.Getenv("XDG_CONFIG_HOME")
-	if dir == "" {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return "", err
-		}
-		dir = filepath.Join(home, ".config")
+	dir, err := configDir()
+	if err != nil {
+		return "", err
 	}
-	return filepath.Join(dir, "rootnet", "rootnet.db"), nil
+	return filepath.Join(dir, "haven", "haven.db"), nil
+}
+
+// MoveLegacy moves the database the tool used under its former name
+// (<config>/rootnet/rootnet.db, with its WAL files) to path, if path does
+// not exist yet. It returns the old location when something was moved.
+func MoveLegacy(path string) (string, error) {
+	if _, err := os.Stat(path); err == nil {
+		return "", nil
+	}
+	dir, err := configDir()
+	if err != nil {
+		return "", err
+	}
+	oldDir := filepath.Join(dir, "rootnet")
+	old := filepath.Join(oldDir, "rootnet.db")
+	if _, err := os.Stat(old); err != nil {
+		return "", nil
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return "", err
+	}
+	for _, suffix := range []string{"", "-wal", "-shm"} {
+		err := os.Rename(old+suffix, path+suffix)
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return "", fmt.Errorf("moving %s to %s: %w", old+suffix, path+suffix, err)
+		}
+	}
+	_ = os.Remove(oldDir) // only succeeds when empty
+	return old, nil
 }
 
 // Open opens (and creates if needed) the database at path and applies
@@ -59,7 +104,7 @@ func Open(path string) (*Store, error) {
 		return nil, err
 	}
 	// A single connection keeps :memory: databases coherent and avoids
-	// writer contention; rootnet never needs parallel queries.
+	// writer contention; haven never needs parallel queries.
 	db.SetMaxOpenConns(1)
 	s := &Store{db: db}
 	if err := s.migrate(context.Background()); err != nil {

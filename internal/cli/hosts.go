@@ -14,11 +14,11 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/match"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/store"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui/hostform"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui/picker"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui/theme"
+	"github.com/ProductionPanic/haven/v2/internal/match"
+	"github.com/ProductionPanic/haven/v2/internal/store"
+	"github.com/ProductionPanic/haven/v2/internal/tui/hostform"
+	"github.com/ProductionPanic/haven/v2/internal/tui/picker"
+	"github.com/ProductionPanic/haven/v2/internal/tui/theme"
 )
 
 func (a *app) getCmd() *cobra.Command {
@@ -29,9 +29,9 @@ func (a *app) getCmd() *cobra.Command {
 		Short: "Print user@host for a host",
 		Long: `Print the ssh destination of a host. The picker (if needed) is drawn on
 stderr, so only the result ends up on stdout.`,
-		Example: `  ssh $(rootnet get appel)
-  rootnet get appel --format '{{.User}}@{{.Hostname}}:{{.Port}}'
-  rootnet get appel --json | jq .remote_path`,
+		Example: `  ssh $(haven get appel)
+  haven get appel --format '{{.User}}@{{.Hostname}}:{{.Port}}'
+  haven get appel --json | jq .remote_path`,
 		ValidArgsFunction: a.completeHosts,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var tmpl *template.Template
@@ -209,8 +209,8 @@ func (a *app) addCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add [name] [destination]",
 		Short: "Add a host (interactive form when no destination is given)",
-		Example: `  rootnet add
-  rootnet add appelenburg.nl web@nuthatch.sys.rootnet.io --path /var/www/site -t wordpress -e production`,
+		Example: `  haven add
+  haven add appelenburg.nl web@nuthatch.sys.rootnet.io --path /var/www/site -t wordpress -e production`,
 		Args: cobra.MaximumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var h store.Host
@@ -240,7 +240,7 @@ func (a *app) addCmd() *cobra.Command {
 			}
 			fmt.Fprintf(cmd.ErrOrStderr(), "Added %s (%s)\n", h.Name, h.Target())
 			if reserved(h.Name) {
-				fmt.Fprintf(cmd.ErrOrStderr(), "Note: %q is also a subcommand; connect with \"rootnet ssh %s\".\n", h.Name, h.Name)
+				fmt.Fprintf(cmd.ErrOrStderr(), "Note: %q is also a subcommand; connect with \"haven ssh %s\".\n", h.Name, h.Name)
 			}
 			return nil
 		},
@@ -254,7 +254,7 @@ func (a *app) editCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "edit <query>",
 		Short:             "Edit a host (interactive form unless field flags are given)",
-		Example:           "  rootnet edit appel\n  rootnet edit appel --port 2222 --tag wordpress,prod",
+		Example:           "  haven edit appel\n  haven edit appel --port 2222 --tag wordpress,prod",
 		Args:              cobra.MinimumNArgs(1),
 		ValidArgsFunction: a.completeHosts,
 		RunE: func(cmd *cobra.Command, args []string) error {

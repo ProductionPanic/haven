@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// Host is a server rootnet can connect to.
+// Host is a server haven can connect to.
 type Host struct {
 	ID           int64      `json:"id" toml:"-"`
 	Name         string     `json:"name" toml:"name"`

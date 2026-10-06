@@ -12,9 +12,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/sshx"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/transfer"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/vfs"
+	"github.com/ProductionPanic/haven/v2/internal/sshx"
+	"github.com/ProductionPanic/haven/v2/internal/transfer"
+	"github.com/ProductionPanic/haven/v2/internal/vfs"
 )
 
 // location is a cp argument: a local path or host:path.
@@ -90,12 +90,12 @@ func (a *app) cpCmd() *cobra.Command {
 locations. Remote paths are relative to the login directory unless they
 start with "/". Transfers go over ssh using the same config as connecting.
 
-Files are written as name.rootnet-part and renamed when complete, so an
+Files are written as name.haven-part and renamed when complete, so an
 interrupted copy never leaves a half-written file in place.`,
-		Example: `  rootnet cp ./dump.sql appel:/tmp/
-  rootnet cp appel:/var/www/site/wp-config.php .
-  rootnet cp -r ./theme appel:wp-content/themes/   # directories are always recursive
-  rootnet cp appel:backup.tar.gz other:/srv/       # host to host`,
+		Example: `  haven cp ./dump.sql appel:/tmp/
+  haven cp appel:/var/www/site/wp-config.php .
+  haven cp -r ./theme appel:wp-content/themes/   # directories are always recursive
+  haven cp appel:backup.tar.gz other:/srv/       # host to host`,
 		Args: cobra.MinimumNArgs(2),
 		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]cobra.Completion, cobra.ShellCompDirective) {
 			if strings.Contains(toComplete, ":") || strings.ContainsAny(toComplete, "/.~") {

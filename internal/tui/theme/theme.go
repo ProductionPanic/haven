@@ -1,4 +1,4 @@
-// Package theme holds the Lip Gloss styles shared by rootnet's screens.
+// Package theme holds the Lip Gloss styles shared by haven's screens.
 package theme
 
 import (

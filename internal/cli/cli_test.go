@@ -26,13 +26,13 @@ func run(t *testing.T, db string, args ...string) (string, error) {
 func TestCommands(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir) // no legacy file to import
-	db := filepath.Join(dir, "rootnet.db")
+	db := filepath.Join(dir, "haven.db")
 
 	mustRun := func(args ...string) string {
 		t.Helper()
 		out, err := run(t, db, args...)
 		if err != nil {
-			t.Fatalf("rootnet %s: %v", strings.Join(args, " "), err)
+			t.Fatalf("haven %s: %v", strings.Join(args, " "), err)
 		}
 		return out
 	}
@@ -83,7 +83,7 @@ func TestLegacyAutoImport(t *testing.T) {
 	legacyFile := filepath.Join(dir, "rootnet_hosts.txt")
 	os.WriteFile(legacyFile, []byte("a.nl | u@a\nb.nl | u@b\n"), 0o600)
 
-	out, err := run(t, filepath.Join(dir, "rootnet.db"), "ls")
+	out, err := run(t, filepath.Join(dir, "haven.db"), "ls")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/store"
+	"github.com/ProductionPanic/haven/v2/internal/store"
 )
 
 // DefaultPath returns ~/rootnet_hosts.txt.

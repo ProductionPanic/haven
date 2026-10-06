@@ -7,14 +7,19 @@ import (
 
 	"charm.land/lipgloss/v2"
 
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/transfer"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/vfs"
+	"github.com/ProductionPanic/haven/v2/internal/transfer"
+	"github.com/ProductionPanic/haven/v2/internal/vfs"
 )
 
 // IconsFromEnv reports whether Nerd Font icons should be shown. They are on
-// unless ROOTNET_ICONS is set to off/none/0/false.
+// unless HAVEN_ICONS (or the former ROOTNET_ICONS) is set to
+// off/none/0/false.
 func IconsFromEnv() bool {
-	switch strings.ToLower(os.Getenv("ROOTNET_ICONS")) {
+	v := os.Getenv("HAVEN_ICONS")
+	if v == "" {
+		v = os.Getenv("ROOTNET_ICONS")
+	}
+	switch strings.ToLower(v) {
 	case "off", "none", "0", "false", "no":
 		return false
 	}

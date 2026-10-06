@@ -11,13 +11,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/vfs"
+	"github.com/ProductionPanic/haven/v2/internal/vfs"
 )
 
 // PartSuffix is appended to files while they are being written. They are
 // renamed into place only once complete, so a cancelled upload never leaves
 // a half-written file under the real name.
-const PartSuffix = ".rootnet-part"
+const PartSuffix = ".haven-part"
 
 // Policy decides what happens when the destination already exists.
 type Policy int

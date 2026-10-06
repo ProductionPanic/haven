@@ -9,9 +9,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/exchange"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/legacy"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/store"
+	"github.com/ProductionPanic/haven/v2/internal/exchange"
+	"github.com/ProductionPanic/haven/v2/internal/legacy"
+	"github.com/ProductionPanic/haven/v2/internal/store"
 )
 
 func (a *app) importCmd() *cobra.Command {
@@ -76,8 +76,8 @@ func (a *app) exportCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "export",
 		Short: "Export hosts as TOML or ssh_config",
-		Example: `  rootnet export > hosts.toml
-  rootnet export --format ssh-config -o ~/.ssh/config.d/rootnet`,
+		Example: `  haven export > hosts.toml
+  haven export --format ssh-config -o ~/.ssh/config.d/haven`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			hosts, err := a.store.List(cmd.Context(), tag)
@@ -92,7 +92,7 @@ func (a *app) exportCmd() *cobra.Command {
 				}
 				// Write to a temp file and rename so a failed export never
 				// leaves a truncated ssh config behind.
-				if f, err = os.CreateTemp(filepath.Dir(output), ".rootnet-export-*"); err != nil {
+				if f, err = os.CreateTemp(filepath.Dir(output), ".haven-export-*"); err != nil {
 					return err
 				}
 				defer os.Remove(f.Name())

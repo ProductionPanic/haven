@@ -13,9 +13,9 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/transfer"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui/theme"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/vfs"
+	"github.com/ProductionPanic/haven/v2/internal/transfer"
+	"github.com/ProductionPanic/haven/v2/internal/tui/theme"
+	"github.com/ProductionPanic/haven/v2/internal/vfs"
 )
 
 // viewLimit is how much of a file the viewer reads.

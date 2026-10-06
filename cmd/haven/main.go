@@ -1,11 +1,11 @@
-// Command rootnet finds and connects to your servers.
+// Command haven finds and connects to your servers.
 package main
 
 import (
 	"context"
 	"os"
 
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/cli"
+	"github.com/ProductionPanic/haven/v2/internal/cli"
 )
 
 func main() {
