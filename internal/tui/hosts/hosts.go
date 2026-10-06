@@ -16,10 +16,10 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/match"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/sshx"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/store"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui/theme"
+	"github.com/ProductionPanic/haven/v2/internal/match"
+	"github.com/ProductionPanic/haven/v2/internal/sshx"
+	"github.com/ProductionPanic/haven/v2/internal/store"
+	"github.com/ProductionPanic/haven/v2/internal/tui/theme"
 )
 
 // Messages emitted for the root app to act on.
@@ -377,7 +377,7 @@ func nextTag(tags []string, cur string) string {
 // View renders the screen.
 func (m Model) View() string {
 	t := m.theme
-	title := t.Title.Render("rootnet")
+	title := t.Title.Render("haven")
 	count := 0
 	for _, r := range m.rows {
 		if r.host != nil {

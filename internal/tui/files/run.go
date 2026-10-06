@@ -5,7 +5,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui/theme"
+	"github.com/ProductionPanic/haven/v2/internal/tui/theme"
 )
 
 // standalone runs the file manager as its own program.
@@ -42,7 +42,7 @@ func (s standalone) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (s standalone) View() tea.View {
 	v := tea.NewView(s.m.View())
 	v.AltScreen = true
-	v.WindowTitle = "rootnet · " + s.m.cfg.Host.Name
+	v.WindowTitle = "haven · " + s.m.cfg.Host.Name
 	return v
 }
 

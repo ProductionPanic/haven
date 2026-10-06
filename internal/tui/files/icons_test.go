@@ -8,8 +8,8 @@ import (
 
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui/theme"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/vfs"
+	"github.com/ProductionPanic/haven/v2/internal/tui/theme"
+	"github.com/ProductionPanic/haven/v2/internal/vfs"
 )
 
 func TestIconFor(t *testing.T) {
@@ -27,7 +27,7 @@ func TestIconFor(t *testing.T) {
 		{vfs.Entry{Name: "deploy", Mode: 0o755}, glyphExec}, // executable without extension
 		{vfs.Entry{Name: "README"}, glyphFile},              // unknown
 		{vfs.Entry{Name: "x.", Mode: 0o644}, glyphFile},     // trailing dot
-		{vfs.Entry{Name: "dump.sql.rootnet-part"}, ""},     // in-progress upload
+		{vfs.Entry{Name: "dump.sql.haven-part"}, ""},       // in-progress upload
 		{vfs.Entry{Name: "current", IsDir: true, Link: "/srv/releases/42"}, glyphLinkDir},
 		{vfs.Entry{Name: "gone", Link: "/nope", Broken: true}, glyphBrokenLink},
 		{vfs.Entry{Name: "conf", Link: "/etc/x", Mode: fs.ModeSymlink}, glyphLinkFile},
@@ -42,10 +42,22 @@ func TestIconFor(t *testing.T) {
 
 func TestIconsFromEnv(t *testing.T) {
 	for v, want := range map[string]bool{"": true, "nerd": true, "off": false, "0": false, "NONE": false} {
-		t.Setenv("ROOTNET_ICONS", v)
+		t.Setenv("HAVEN_ICONS", v)
 		if got := IconsFromEnv(); got != want {
-			t.Errorf("ROOTNET_ICONS=%q → %v, want %v", v, got, want)
+			t.Errorf("HAVEN_ICONS=%q → %v, want %v", v, got, want)
 		}
+	}
+}
+
+func TestIconsFromLegacyEnv(t *testing.T) {
+	t.Setenv("HAVEN_ICONS", "")
+	t.Setenv("ROOTNET_ICONS", "off")
+	if IconsFromEnv() {
+		t.Error("ROOTNET_ICONS=off should still be honoured")
+	}
+	t.Setenv("HAVEN_ICONS", "on")
+	if !IconsFromEnv() {
+		t.Error("HAVEN_ICONS should win over ROOTNET_ICONS")
 	}
 }
 

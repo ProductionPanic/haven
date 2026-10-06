@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"errors"
+	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -10,7 +11,7 @@ import (
 
 func openTemp(t *testing.T) *Store {
 	t.Helper()
-	s, err := Open(filepath.Join(t.TempDir(), "rootnet.db"))
+	s, err := Open(filepath.Join(t.TempDir(), "haven.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,5 +126,73 @@ func TestDirs(t *testing.T) {
 	s.Delete(ctx, h.ID)
 	if l, _, _ := s.Dirs(ctx, h.ID); l != "" {
 		t.Error("state not removed with host")
+	}
+}
+
+func TestMoveLegacy(t *testing.T) {
+	ctx := context.Background()
+	cfg := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", cfg)
+	t.Setenv("HAVEN_DB", "")
+	t.Setenv("ROOTNET_DB", "")
+
+	// A database left by the old name, with a host in it.
+	old := filepath.Join(cfg, "rootnet", "rootnet.db")
+	s, err := Open(old)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Create(ctx, Host{Name: "appelenburg.nl", Hostname: "srv"})
+	s.Close()
+
+	path, _ := DefaultPath()
+	if path != filepath.Join(cfg, "haven", "haven.db") {
+		t.Fatalf("DefaultPath = %s", path)
+	}
+	moved, err := MoveLegacy(path)
+	if err != nil || moved != old {
+		t.Fatalf("MoveLegacy = %q, %v", moved, err)
+	}
+	s, err = Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Get(ctx, "appelenburg.nl"); err != nil {
+		t.Errorf("host not carried over: %v", err)
+	}
+	s.Close()
+	if _, err := os.Stat(filepath.Join(cfg, "rootnet")); !os.IsNotExist(err) {
+		t.Error("empty old directory not removed")
+	}
+	if again, err := MoveLegacy(path); again != "" || err != nil {
+		t.Errorf("second MoveLegacy = %q, %v", again, err)
+	}
+}
+
+func TestMoveLegacyKeepsExisting(t *testing.T) {
+	cfg := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", cfg)
+	os.MkdirAll(filepath.Join(cfg, "rootnet"), 0o700)
+	os.WriteFile(filepath.Join(cfg, "rootnet", "rootnet.db"), []byte("old"), 0o600)
+	path := filepath.Join(cfg, "haven", "haven.db")
+	os.MkdirAll(filepath.Dir(path), 0o700)
+	os.WriteFile(path, []byte("new"), 0o600)
+	if moved, _ := MoveLegacy(path); moved != "" {
+		t.Error("must not replace an existing haven database")
+	}
+	if b, _ := os.ReadFile(path); string(b) != "new" {
+		t.Error("existing database changed")
+	}
+}
+
+func TestEnvPath(t *testing.T) {
+	t.Setenv("HAVEN_DB", "")
+	t.Setenv("ROOTNET_DB", "/old.db")
+	if p, _ := DefaultPath(); p != "/old.db" {
+		t.Errorf("ROOTNET_DB fallback: %s", p)
+	}
+	t.Setenv("HAVEN_DB", "/new.db")
+	if p, _ := DefaultPath(); p != "/new.db" {
+		t.Errorf("HAVEN_DB: %s", p)
 	}
 }

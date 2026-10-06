@@ -11,8 +11,8 @@ import (
 
 	"github.com/pkg/sftp"
 
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/store"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/vfs"
+	"github.com/ProductionPanic/haven/v2/internal/store"
+	"github.com/ProductionPanic/haven/v2/internal/vfs"
 )
 
 // SFTPArgs returns the ssh argv (excluding "ssh") that starts the sftp
@@ -106,7 +106,7 @@ func dialError(h store.Host, sftpErr, waitErr error, stderr string) error {
 	case strings.Contains(msg, "Permission denied"):
 		hint = " (is your key loaded in the agent?)"
 	case strings.Contains(msg, "Host key verification failed"):
-		hint = fmt.Sprintf(` (connect once with "rootnet ssh %s" to accept the host key)`, h.Name)
+		hint = fmt.Sprintf(` (connect once with "haven ssh %s" to accept the host key)`, h.Name)
 	case strings.Contains(msg, "subsystem request failed"):
 		hint = " (the server has SFTP disabled)"
 	}

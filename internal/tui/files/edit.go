@@ -14,10 +14,10 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/sshx"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/transfer"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui/theme"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/vfs"
+	"github.com/ProductionPanic/haven/v2/internal/sshx"
+	"github.com/ProductionPanic/haven/v2/internal/transfer"
+	"github.com/ProductionPanic/haven/v2/internal/tui/theme"
+	"github.com/ProductionPanic/haven/v2/internal/vfs"
 )
 
 // maxEdit is the largest file opened in the editor.
@@ -123,7 +123,7 @@ func prepareEdit(side int, fsys vfs.FS, path string, e vfs.Entry, force bool) te
 		if !force && isBinary(data) {
 			return editBinaryMsg{side: side, e: e}
 		}
-		dir, err := os.MkdirTemp("", "rootnet-edit-")
+		dir, err := os.MkdirTemp("", "haven-edit-")
 		if err != nil {
 			return opDoneMsg{err: err}
 		}

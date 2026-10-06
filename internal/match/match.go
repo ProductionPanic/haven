@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/store"
+	"github.com/ProductionPanic/haven/v2/internal/store"
 )
 
 // Frecency scores a host by how often and how recently it was used.

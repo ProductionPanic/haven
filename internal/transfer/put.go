@@ -4,11 +4,11 @@ import (
 	"io"
 	"io/fs"
 
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/vfs"
+	"github.com/ProductionPanic/haven/v2/internal/vfs"
 )
 
 // PutFile writes r to path on fsys atomically: the data goes to a
-// .rootnet-part file that replaces path only once fully written. mode is
+// .haven-part file that replaces path only once fully written. mode is
 // applied when non-zero.
 func PutFile(fsys vfs.FS, path string, r io.Reader, mode fs.FileMode) error {
 	part := path + PartSuffix

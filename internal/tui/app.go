@@ -1,4 +1,4 @@
-// Package tui is rootnet's full-screen host manager. The App routes between
+// Package tui is haven's full-screen host manager. The App routes between
 // the hosts screen and its overlays (host form, confirm dialog).
 package tui
 
@@ -15,12 +15,12 @@ import (
 	"charm.land/huh/v2"
 	"charm.land/lipgloss/v2"
 
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/sshx"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/store"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui/files"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui/hostform"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui/hosts"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui/theme"
+	"github.com/ProductionPanic/haven/v2/internal/sshx"
+	"github.com/ProductionPanic/haven/v2/internal/store"
+	"github.com/ProductionPanic/haven/v2/internal/tui/files"
+	"github.com/ProductionPanic/haven/v2/internal/tui/hostform"
+	"github.com/ProductionPanic/haven/v2/internal/tui/hosts"
+	"github.com/ProductionPanic/haven/v2/internal/tui/theme"
 )
 
 // Store is the subset of *store.Store the app needs.
@@ -329,7 +329,7 @@ func (a App) View() tea.View {
 	if a.files != nil {
 		v := tea.NewView(a.files.View())
 		v.AltScreen = true
-		v.WindowTitle = "rootnet · " + a.files.Host().Name
+		v.WindowTitle = "haven · " + a.files.Host().Name
 		return v
 	}
 	base := lipgloss.NewStyle().Margin(0, 1).Render(a.hosts.View())
@@ -364,6 +364,6 @@ func (a App) View() tea.View {
 
 	v := tea.NewView(content)
 	v.AltScreen = true
-	v.WindowTitle = "rootnet"
+	v.WindowTitle = "haven"
 	return v
 }

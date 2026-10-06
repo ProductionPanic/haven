@@ -1,8 +1,8 @@
 package vfs_test
 
 import (
-	. "github.com/ProductionPanic/rootnet-cli/v2/internal/vfs"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/vfs/vfstest"
+	. "github.com/ProductionPanic/haven/v2/internal/vfs"
+	"github.com/ProductionPanic/haven/v2/internal/vfs/vfstest"
 	"io"
 	"os"
 	"path/filepath"

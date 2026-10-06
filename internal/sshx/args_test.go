@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/store"
+	"github.com/ProductionPanic/haven/v2/internal/store"
 )
 
 func TestConnectArgs(t *testing.T) {

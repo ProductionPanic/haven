@@ -10,7 +10,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/store"
+	"github.com/ProductionPanic/haven/v2/internal/store"
 )
 
 // ErrCancelled is returned when the user quits without choosing a host.

@@ -9,7 +9,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/store"
+	"github.com/ProductionPanic/haven/v2/internal/store"
 )
 
 // driver feeds messages to the app and runs the resulting commands, so

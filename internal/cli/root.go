@@ -1,4 +1,4 @@
-// Package cli wires rootnet's cobra commands together.
+// Package cli wires haven's cobra commands together.
 package cli
 
 import (
@@ -15,12 +15,12 @@ import (
 	"github.com/charmbracelet/x/term"
 	"github.com/spf13/cobra"
 
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/legacy"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/match"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/sshx"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/store"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui"
-	"github.com/ProductionPanic/rootnet-cli/v2/internal/tui/picker"
+	"github.com/ProductionPanic/haven/v2/internal/legacy"
+	"github.com/ProductionPanic/haven/v2/internal/match"
+	"github.com/ProductionPanic/haven/v2/internal/sshx"
+	"github.com/ProductionPanic/haven/v2/internal/store"
+	"github.com/ProductionPanic/haven/v2/internal/tui"
+	"github.com/ProductionPanic/haven/v2/internal/tui/picker"
 )
 
 // app carries state shared by all commands.
@@ -29,7 +29,7 @@ type app struct {
 	store  *store.Store
 }
 
-// Execute runs the rootnet command line.
+// Execute runs the haven command line.
 func Execute(ctx context.Context) error {
 	a := &app{}
 	root := a.rootCmd()
@@ -56,20 +56,20 @@ func version() string {
 
 func (a *app) rootCmd() *cobra.Command {
 	root := &cobra.Command{
-		Use:   "rootnet [query]",
+		Use:   "haven [query]",
 		Short: "Find and connect to your servers",
-		Long: `rootnet keeps a list of servers and connects to them over ssh.
+		Long: `haven keeps a list of servers and connects to them over ssh.
 
-Without arguments, rootnet opens the host manager. With a query, it
+Without arguments, haven opens the host manager. With a query, it
 connects straight away when exactly one host matches and opens a picker
 otherwise. Results are ranked by how often and how
-recently you used them. Use "rootnet ssh <query>" when a host is named like
+recently you used them. Use "haven ssh <query>" when a host is named like
 one of the subcommands.`,
-		Example: `  rootnet                    # open the host manager
-  rootnet appel              # connect to appelenburg.nl
-  rootnet get appel          # print web@server for use in scripts
-  rootnet add                # add a host interactively
-  scp dump.sql $(rootnet get appel):/tmp/`,
+		Example: `  haven                    # open the host manager
+  haven appel              # connect to appelenburg.nl
+  haven get appel          # print web@server for use in scripts
+  haven add                # add a host interactively
+  scp dump.sql $(haven get appel):/tmp/`,
 		Args:              cobra.ArbitraryArgs,
 		ValidArgsFunction: a.completeHosts,
 		SilenceUsage:      true,
@@ -83,7 +83,7 @@ one of the subcommands.`,
 			return a.connect(cmd.Context(), strings.Join(args, " "))
 		},
 	}
-	root.PersistentFlags().StringVar(&a.dbPath, "db", "", "database path (default $ROOTNET_DB or ~/.config/rootnet/rootnet.db)")
+	root.PersistentFlags().StringVar(&a.dbPath, "db", "", "database path (default $HAVEN_DB or ~/.config/haven/haven.db)")
 	root.AddCommand(
 		a.sshCmd(),
 		a.uiCmd(),
@@ -132,6 +132,16 @@ func (a *app) open(notice interface{ Write([]byte) (int, error) }) error {
 		if path, err = store.DefaultPath(); err != nil {
 			return err
 		}
+		if store.EnvPath() == "" {
+			// haven used to be called rootnet; bring its hosts along.
+			old, err := store.MoveLegacy(path)
+			if err != nil {
+				return err
+			}
+			if old != "" {
+				fmt.Fprintf(notice, "haven: moved your hosts from %s to %s\n", old, path)
+			}
+		}
 	}
 	_, statErr := os.Stat(path)
 	fresh := errors.Is(statErr, os.ErrNotExist)
@@ -171,7 +181,7 @@ func (a *app) importLegacy(notice interface{ Write([]byte) (int, error) }) error
 	if err := os.Rename(src, src+".bak"); err != nil {
 		return err
 	}
-	fmt.Fprintf(notice, "rootnet: imported %d hosts from %s (original kept as %s.bak)\n", n, src, src)
+	fmt.Fprintf(notice, "haven: imported %d hosts from %s (original kept as %s.bak)\n", n, src, src)
 	return nil
 }
 
@@ -190,11 +200,11 @@ func (a *app) resolve(ctx context.Context, query string) (store.Host, error) {
 		return store.Host{}, err
 	}
 	if len(hosts) == 0 {
-		return store.Host{}, errors.New(`no hosts yet; add one with "rootnet add"`)
+		return store.Host{}, errors.New(`no hosts yet; add one with "haven add"`)
 	}
 	now := time.Now()
 	matches := match.Find(hosts, query, now)
-	title := "Rootnet hosts"
+	title := "Haven hosts"
 	switch {
 	case len(matches) == 1 && query != "":
 		return matches[0], nil
@@ -225,7 +235,7 @@ func isTerminal(f *os.File) bool { return term.IsTerminal(f.Fd()) }
 
 // interactive reports whether a TUI can be shown: either stdin is a
 // terminal or the controlling terminal can be opened (Bubble Tea falls back
-// to /dev/tty, which is what makes `ssh $(rootnet get foo)` work).
+// to /dev/tty, which is what makes `ssh $(haven get foo)` work).
 func interactive() bool {
 	if isTerminal(os.Stdin) {
 		return true
@@ -241,7 +251,7 @@ func interactive() bool {
 func (a *app) uiCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "ui",
-		Short: "Open the host manager (also what plain \"rootnet\" does)",
+		Short: "Open the host manager (also what plain \"haven\" does)",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return a.ui(cmd.Context())
@@ -272,7 +282,7 @@ func (a *app) connect(ctx context.Context, query string) error {
 	return a.exec(ctx, h)
 }
 
-// exec records the connection and replaces rootnet with ssh.
+// exec records the connection and replaces haven with ssh.
 func (a *app) exec(ctx context.Context, h store.Host) error {
 	args, err := sshx.ConnectArgs(h)
 	if err != nil {
