@@ -7,6 +7,8 @@ Go binary with a fuzzy-search TUI, built on your normal `ssh`, so your
 
 > Haven used to be called **rootnet**. See [Coming from rootnet](#coming-from-rootnet).
 
+![haven host manager: browsing, filtering, grouping by server and tags](docs/demo.gif)
+
 ## Features
 * **Partial matching:** `haven foo` connects instantly when exactly one host matches, and opens a fuzzy picker otherwise.
 * **Frecency ranking:** hosts you use often and recently float to the top.
@@ -82,6 +84,8 @@ Production hosts get a red badge and an extra warning before deletion.
 the left and the host on the right. The local side starts in your current
 directory; the remote side starts in the host's remote path, or where you left
 off last time on that host.
+
+![haven file manager: copying local files to a host and viewing a remote file](docs/files.gif)
 
 | Key | Action |
 |-----|--------|
