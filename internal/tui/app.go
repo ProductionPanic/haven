@@ -15,6 +15,7 @@ import (
 	"charm.land/huh/v2"
 	"charm.land/lipgloss/v2"
 
+	"github.com/ProductionPanic/haven/v2/internal/check"
 	"github.com/ProductionPanic/haven/v2/internal/sshx"
 	"github.com/ProductionPanic/haven/v2/internal/store"
 	"github.com/ProductionPanic/haven/v2/internal/tui/files"
@@ -33,6 +34,7 @@ type Store interface {
 	MarkUsed(ctx context.Context, id int64) error
 	Dirs(ctx context.Context, hostID int64) (local, remote string, err error)
 	SaveDirs(ctx context.Context, hostID int64, local, remote string) error
+	SaveCheck(ctx context.Context, hostID int64, c store.Check) error
 }
 
 type (
@@ -49,6 +51,10 @@ type (
 	shellDoneMsg   struct {
 		host store.Host
 		err  error
+	}
+	checkDoneMsg struct {
+		host  store.Host
+		check store.Check
 	}
 )
 
@@ -73,12 +79,17 @@ type App struct {
 	width       int
 	height      int
 	connectHost *store.Host
+
+	checkRun     check.Runner
+	checkSlots   chan struct{} // limits concurrent ssh checks
+	autoCheckRan bool          // stale hosts are checked once, on the first load
 }
 
 // New creates the app.
 func New(ctx context.Context, s Store) App {
 	t := theme.New(true)
-	return App{ctx: ctx, store: s, theme: t, hosts: hosts.New(t)}
+	return App{ctx: ctx, store: s, theme: t, hosts: hosts.New(t),
+		checkRun: check.SSH, checkSlots: make(chan struct{}, check.Workers)}
 }
 
 // Run starts the host manager. It returns the host to connect to when the
@@ -138,6 +149,22 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.selectID >= 0 {
 			a.hosts.Select(msg.selectID)
 		}
+		if a.autoCheckRan {
+			return a, nil
+		}
+		a.autoCheckRan = true
+		var stale []store.Host
+		for _, h := range msg.hosts {
+			if h.Stale(time.Now(), check.MaxAge) {
+				stale = append(stale, h)
+			}
+		}
+		return a, a.check(stale)
+	case checkDoneMsg:
+		a.hosts.SetCheck(msg.host.ID, msg.check)
+		if err := a.store.SaveCheck(a.ctx, msg.host.ID, msg.check); err != nil {
+			return a, a.setStatus(err.Error(), true)
+		}
 		return a, nil
 	case statusMsg:
 		return a, a.setStatus(msg.text, msg.isErr)
@@ -175,6 +202,8 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, a.setStatus("ssh: "+msg.err.Error(), true))
 		}
 		return a, tea.Batch(cmds...)
+	case hosts.CheckMsg:
+		return a, a.check(msg.Hosts)
 	case hosts.CopyMsg:
 		return a, tea.Batch(tea.SetClipboard(msg.Host.Target()),
 			a.setStatus("Copied "+msg.Host.Target(), false))
@@ -249,6 +278,24 @@ func (a App) shell(h store.Host) tea.Cmd {
 	})
 }
 
+// check starts ssh checks of hosts in the background, skipping hosts whose
+// check is already running. Each result arrives as a checkDoneMsg.
+func (a *App) check(hs []store.Host) tea.Cmd {
+	var cmds []tea.Cmd
+	for _, h := range hs {
+		if a.hosts.Checking(h.ID) {
+			continue
+		}
+		a.hosts.SetChecking(h.ID)
+		cmds = append(cmds, func() tea.Msg {
+			a.checkSlots <- struct{}{}
+			defer func() { <-a.checkSlots }()
+			return checkDoneMsg{host: h, check: check.Host(a.ctx, a.checkRun, h, time.Now())}
+		})
+	}
+	return tea.Batch(cmds...)
+}
+
 func (a App) setStatusCmd(text string, isErr bool) tea.Cmd {
 	return func() tea.Msg { return statusMsg{text, isErr} }
 }
@@ -296,7 +343,7 @@ func (a App) updateForm(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if err != nil {
 			return a, a.setStatus(err.Error(), true)
 		}
-		return a, tea.Batch(a.load(h.ID), a.setStatus(verb+" "+h.Name, false))
+		return a, tea.Batch(a.load(h.ID), a.setStatus(verb+" "+h.Name, false), a.check([]store.Host{h}))
 	}
 	m, cmd := a.form.Update(msg)
 	if f, ok := m.(*huh.Form); ok {

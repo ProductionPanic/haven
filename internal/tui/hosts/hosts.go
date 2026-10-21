@@ -31,6 +31,7 @@ type (
 	EditMsg    struct{ Host store.Host }
 	DeleteMsg  struct{ Host store.Host }
 	CopyMsg    struct{ Host store.Host }
+	CheckMsg   struct{ Hosts []store.Host } // check the ssh login of these hosts
 	QuitMsg    struct{}
 )
 
@@ -49,10 +50,11 @@ type Model struct {
 	help   help.Model
 	filter textinput.Model
 
-	all     []store.Host
-	tags    []string
-	tag     string
-	grouped bool
+	all      []store.Host
+	checking map[int64]bool
+	tags     []string
+	tag      string
+	grouped  bool
 
 	rows   []row
 	cursor int // index into rows; always a host row when any exist
@@ -68,10 +70,11 @@ func New(t theme.Theme) Model {
 	ti.Prompt = "/ "
 	ti.Placeholder = "filter hosts"
 	m := Model{
-		Keys:   DefaultKeyMap(),
-		help:   help.New(),
-		filter: ti,
-		now:    time.Now,
+		Keys:     DefaultKeyMap(),
+		help:     help.New(),
+		filter:   ti,
+		checking: map[int64]bool{},
+		now:      time.Now,
 	}
 	m.SetTheme(t)
 	return m
@@ -112,6 +115,31 @@ func (m *Model) SetHosts(hosts []store.Host) {
 		m.tag = ""
 	}
 	m.rebuild()
+}
+
+// SetChecking marks hosts whose ssh check is running.
+func (m *Model) SetChecking(ids ...int64) {
+	for _, id := range ids {
+		m.checking[id] = true
+	}
+}
+
+// Checking reports whether the ssh check of a host is running.
+func (m Model) Checking(id int64) bool { return m.checking[id] }
+
+// SetCheck stores the result of a finished ssh check.
+func (m *Model) SetCheck(id int64, c store.Check) {
+	delete(m.checking, id)
+	for i := range m.all {
+		if m.all[i].ID == id {
+			m.all[i].Check = &c
+		}
+	}
+	for i := range m.rows {
+		if h := m.rows[i].host; h != nil && h.ID == id {
+			h.Check = &c
+		}
+	}
 }
 
 // Select moves the cursor to the host with the given ID, if visible.
@@ -353,6 +381,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		return m, selected(func(h store.Host) tea.Msg { return DeleteMsg{h} })
 	case key.Matches(k, m.Keys.Copy):
 		return m, selected(func(h store.Host) tea.Msg { return CopyMsg{h} })
+	case key.Matches(k, m.Keys.Check):
+		return m, selected(func(h store.Host) tea.Msg { return CheckMsg{[]store.Host{h}} })
+	case key.Matches(k, m.Keys.CheckAll):
+		if len(m.all) == 0 {
+			return m, nil
+		}
+		hs := append([]store.Host(nil), m.all...)
+		return m, func() tea.Msg { return CheckMsg{hs} }
 	case key.Matches(k, m.Keys.Quit):
 		return m, func() tea.Msg { return QuitMsg{} }
 	}
@@ -452,7 +488,7 @@ func (m Model) listView() string {
 		if !m.grouped {
 			target = "  " + t.Faint.Render(hst.Target())
 		}
-		line := cursor + dot + " " + nameStyle.Render(name) + pad + target
+		line := cursor + m.checkDot(*hst) + " " + dot + " " + nameStyle.Render(name) + pad + target
 		lines = append(lines, ansi.Truncate(line, w, "…"))
 	}
 	return lipgloss.NewStyle().Width(w).Height(h).MaxHeight(h).Render(strings.Join(lines, "\n"))
@@ -497,6 +533,7 @@ func (m Model) detailView(w, h int) string {
 		last = fmt.Sprintf("%s (%d×)", humanize(m.now().Sub(*hst.LastUsedAt)), hst.UseCount)
 	}
 	field("Last used", last)
+	field("SSH check", m.checkText(hst))
 
 	if args, err := sshx.ConnectArgs(hst); err == nil {
 		b.WriteString("\n" + t.Faint.Render(ansi.Wrap("$ ssh "+strings.Join(quoteAll(args), " "), inner, "")) + "\n")
@@ -505,6 +542,34 @@ func (m Model) detailView(w, h int) string {
 		b.WriteString("\n" + lipgloss.Wrap(hst.Notes, inner, "") + "\n")
 	}
 	return box.Render(strings.TrimRight(b.String(), "\n"))
+}
+
+// checkDot is the ssh check status in the list: green when the last login
+// worked, red when it failed, grey when unknown or running.
+func (m Model) checkDot(h store.Host) string {
+	t := m.theme
+	switch {
+	case m.checking[h.ID] || h.Check == nil:
+		return t.Faint.Render("•")
+	case h.Check.OK:
+		return lipgloss.NewStyle().Foreground(t.Success).Render("•")
+	default:
+		return lipgloss.NewStyle().Foreground(t.Danger).Render("•")
+	}
+}
+
+func (m Model) checkText(h store.Host) string {
+	t := m.theme
+	switch {
+	case m.checking[h.ID]:
+		return t.Faint.Render("checking…")
+	case h.Check == nil:
+		return t.Faint.Render("never")
+	case h.Check.OK:
+		return lipgloss.NewStyle().Foreground(t.Success).Render("ok") + t.Faint.Render(" · "+humanize(m.now().Sub(h.Check.At)))
+	default:
+		return lipgloss.NewStyle().Foreground(t.Danger).Render("failed") + t.Faint.Render(" · "+humanize(m.now().Sub(h.Check.At)))
+	}
 }
 
 func quoteAll(args []string) []string {

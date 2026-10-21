@@ -45,8 +45,10 @@ haven ssh <query>          explicit connect (for hosts named like a subcommand)
 haven get [query]          print user@host  (--format '{{.User}}@{{.Hostname}}:{{.Port}}', --json)
 haven ls                   list hosts (--tag, --recent, --json)
 haven add [name] [user@host] [flags]   add a host; without a destination an interactive form opens
+haven add ssh <user@host>  add a host straight from an ssh destination, named after the user
 haven edit <query> [flags] edit a host; without field flags an interactive form opens
 haven rm <query>           remove a host (asks for confirmation unless --yes)
+haven check [query]        check that ssh logins still work (--tag, --json; exit status 1 on failure)
 haven files [query]        two-pane file manager (local ↔ host)
 haven cp <src>... <dst>    copy files, e.g. haven cp ./dump.sql appel:/tmp/
 haven import [file]        import TOML or the legacy "name | user@host" format
@@ -56,6 +58,23 @@ haven completion zsh|bash|fish
 
 When a host has a remote path, `haven` logs in and `cd`s there:
 `ssh -t user@host 'cd /var/www/site && exec "$SHELL" -l'`.
+
+### Checking connections
+
+haven can tell you when a login stopped working (a revoked key, a removed
+user, a server that is gone). A check is a real login without a terminal:
+`ssh -o BatchMode=yes -o ConnectTimeout=5 user@host true`, with the host's
+port, key, jump host and extra args. Up to 8 hosts are checked at once and the
+last result is kept in the database.
+
+- `haven check` checks every host (or the ones matching a query or `--tag`),
+  prints a table and exits with status 1 when one fails, so it works from cron.
+- `haven add` and `haven edit` try the connection after saving and warn when
+  it fails. The host is saved either way; `--no-check` skips the check.
+- The host manager checks every host that wasn't checked in the last 5 minutes
+  in the background when it opens. The dot before each host shows the result:
+  green when the login worked, red when it failed, grey when unknown or still
+  running. The detail panel shows when it was checked, and `ls` has an SSH column.
 
 ### Host manager
 
@@ -74,6 +93,7 @@ command).
 | `a` / `e` / `d` | add / edit / delete |
 | `f` | open the file manager for the host (`q` comes back) |
 | `y` | copy `user@host` to the clipboard (OSC 52, works over ssh too) |
+| `p` / `P` | check the ssh login of the host / of every host |
 | `?` | all key bindings |
 
 Production hosts get a red badge and an extra warning before deletion.

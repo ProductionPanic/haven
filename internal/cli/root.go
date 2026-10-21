@@ -15,6 +15,7 @@ import (
 	"github.com/charmbracelet/x/term"
 	"github.com/spf13/cobra"
 
+	"github.com/ProductionPanic/haven/v2/internal/check"
 	"github.com/ProductionPanic/haven/v2/internal/legacy"
 	"github.com/ProductionPanic/haven/v2/internal/match"
 	"github.com/ProductionPanic/haven/v2/internal/sshx"
@@ -25,8 +26,9 @@ import (
 
 // app carries state shared by all commands.
 type app struct {
-	dbPath string
-	store  *store.Store
+	dbPath   string
+	store    *store.Store
+	checkRun check.Runner // nil means check.SSH
 }
 
 // Execute runs the haven command line.
@@ -69,6 +71,7 @@ one of the subcommands.`,
   haven appel              # connect to appelenburg.nl
   haven get appel          # print web@server for use in scripts
   haven add                # add a host interactively
+  haven check              # check that every ssh login still works
   scp dump.sql $(haven get appel):/tmp/`,
 		Args:              cobra.ArbitraryArgs,
 		ValidArgsFunction: a.completeHosts,
@@ -92,6 +95,7 @@ one of the subcommands.`,
 		a.addCmd(),
 		a.editCmd(),
 		a.rmCmd(),
+		a.checkCmd(),
 		a.importCmd(),
 		a.exportCmd(),
 		a.cpCmd(),
@@ -103,7 +107,7 @@ one of the subcommands.`,
 // reserved reports whether name collides with a subcommand.
 func reserved(name string) bool {
 	switch strings.ToLower(name) {
-	case "ssh", "get", "ls", "add", "edit", "rm", "import", "export", "completion", "help", "ui", "files", "cp", "man":
+	case "ssh", "get", "ls", "add", "edit", "rm", "import", "export", "completion", "help", "ui", "files", "cp", "man", "check":
 		return true
 	}
 	return false
