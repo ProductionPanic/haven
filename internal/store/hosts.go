@@ -26,6 +26,7 @@ type Host struct {
 	Tags         []string   `json:"tags,omitempty" toml:"tags,omitempty"`
 	LastUsedAt   *time.Time `json:"last_used_at,omitempty" toml:"-"`
 	UseCount     int        `json:"use_count" toml:"-"`
+	Check        *Check     `json:"last_check,omitempty" toml:"-"`
 	CreatedAt    time.Time  `json:"created_at" toml:"-"`
 	UpdatedAt    time.Time  `json:"updated_at" toml:"-"`
 }
@@ -52,20 +53,36 @@ func (h Host) Validate() error {
 	return nil
 }
 
+// Check is the outcome of the last ssh check of a host.
+type Check struct {
+	At    time.Time `json:"at"`
+	OK    bool      `json:"ok"`
+	Error string    `json:"error,omitempty"`
+}
+
 const hostColumns = `id, name, user, hostname, port, identity_file, jump_host, remote_path,
-	extra_args, notes, environment, last_used_at, use_count, created_at, updated_at`
+	extra_args, notes, environment, last_used_at, use_count, created_at, updated_at,
+	hs.last_check_at, COALESCE(hs.last_check_ok, 0), COALESCE(hs.last_check_error, '')`
+
+// hostsFrom joins the check state onto hosts.
+const hostsFrom = ` FROM hosts LEFT JOIN host_state hs ON hs.host_id = hosts.id`
 
 type scanner interface{ Scan(dest ...any) error }
 
 func scanHost(r scanner) (Host, error) {
 	var h Host
-	var last sql.NullTime
+	var last, checkAt sql.NullTime
+	var check Check
 	err := r.Scan(&h.ID, &h.Name, &h.User, &h.Hostname, &h.Port, &h.IdentityFile, &h.JumpHost,
 		&h.RemotePath, &h.ExtraArgs, &h.Notes, &h.Environment, &last, &h.UseCount,
-		&h.CreatedAt, &h.UpdatedAt)
+		&h.CreatedAt, &h.UpdatedAt, &checkAt, &check.OK, &check.Error)
 	if last.Valid {
 		t := last.Time
 		h.LastUsedAt = &t
+	}
+	if checkAt.Valid {
+		check.At = checkAt.Time
+		h.Check = &check
 	}
 	return h, err
 }
@@ -73,7 +90,7 @@ func scanHost(r scanner) (Host, error) {
 // List returns all hosts ordered by name. If tag is non-empty only hosts
 // carrying that tag are returned.
 func (s *Store) List(ctx context.Context, tag string) ([]Host, error) {
-	q := `SELECT ` + hostColumns + ` FROM hosts`
+	q := `SELECT ` + hostColumns + hostsFrom
 	var args []any
 	if tag != "" {
 		q += ` WHERE id IN (SELECT ht.host_id FROM host_tags ht JOIN tags t ON t.id = ht.tag_id WHERE t.name = ?)`
@@ -109,7 +126,7 @@ func (s *Store) List(ctx context.Context, tag string) ([]Host, error) {
 // Get returns the host with the given name (case-insensitive).
 func (s *Store) Get(ctx context.Context, name string) (Host, error) {
 	h, err := scanHost(s.db.QueryRowContext(ctx,
-		`SELECT `+hostColumns+` FROM hosts WHERE name = ?`, name))
+		`SELECT `+hostColumns+hostsFrom+` WHERE name = ?`, name))
 	if errors.Is(err, sql.ErrNoRows) {
 		return Host{}, fmt.Errorf("%w: %s", ErrNotFound, name)
 	}
@@ -235,7 +252,7 @@ func (s *Store) Tags(ctx context.Context) ([]string, error) {
 }
 
 func (s *Store) getByID(ctx context.Context, id int64) (Host, error) {
-	h, err := scanHost(s.db.QueryRowContext(ctx, `SELECT `+hostColumns+` FROM hosts WHERE id = ?`, id))
+	h, err := scanHost(s.db.QueryRowContext(ctx, `SELECT `+hostColumns+hostsFrom+` WHERE id = ?`, id))
 	if err != nil {
 		return Host{}, err
 	}

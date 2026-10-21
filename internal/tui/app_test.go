@@ -2,12 +2,17 @@ package tui
 
 import (
 	"context"
+	"errors"
 	"path/filepath"
 	"reflect"
+	"sort"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/ProductionPanic/haven/v2/internal/store"
 )
@@ -96,10 +101,43 @@ func setup(t *testing.T) (*driver, *store.Store) {
 	s.Create(ctx, store.Host{Name: "alpha.nl", User: "u", Hostname: "a"})
 	s.Create(ctx, store.Host{Name: "beta.nl", User: "u", Hostname: "b", Environment: "production"})
 
-	d := &driver{t: t, app: New(ctx, s)}
+	d, _ := setupWith(t, s, func(context.Context, []string) error { return nil })
+	return d, s
+}
+
+// setupWith starts the app on s with run standing in for ssh, and returns
+// the hostnames run was called for.
+func setupWith(t *testing.T, s *store.Store, run func(context.Context, []string) error) (*driver, *calls) {
+	t.Helper()
+	c := &calls{}
+	app := New(context.Background(), s)
+	app.checkRun = func(ctx context.Context, args []string) error {
+		c.add(args[len(args)-2])
+		return run(ctx, args)
+	}
+	d := &driver{t: t, app: app}
 	d.send(tea.WindowSizeMsg{Width: 120, Height: 40})
 	d.send(d.app.Init()())
-	return d, s
+	return d, c
+}
+
+type calls struct {
+	mu      sync.Mutex
+	targets []string
+}
+
+func (c *calls) add(target string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.targets = append(c.targets, target)
+}
+
+func (c *calls) list() []string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	out := append([]string(nil), c.targets...)
+	sort.Strings(out)
+	return out
 }
 
 func names(t *testing.T, s *store.Store) []string {
@@ -189,5 +227,80 @@ func TestFilesConfigStartsInCwd(t *testing.T) {
 	}
 	if cfg.RemoteDir != "/var/www/site" {
 		t.Errorf("RemoteDir = %q, want the remembered one", cfg.RemoteDir)
+	}
+}
+
+func checkOf(t *testing.T, s *store.Store, name string) *store.Check {
+	t.Helper()
+	h, err := s.Get(context.Background(), name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return h.Check
+}
+
+func TestChecksOnOpen(t *testing.T) {
+	s, err := store.Open(filepath.Join(t.TempDir(), "db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { s.Close() })
+	ctx := context.Background()
+	s.Create(ctx, store.Host{Name: "alpha.nl", User: "u", Hostname: "a"})
+	s.Create(ctx, store.Host{Name: "beta.nl", User: "u", Hostname: "down"})
+	fresh, _ := s.Create(ctx, store.Host{Name: "fresh.nl", User: "u", Hostname: "f"})
+	s.SaveCheck(ctx, fresh.ID, store.Check{At: time.Now(), OK: true})
+
+	d, c := setupWith(t, s, func(_ context.Context, args []string) error {
+		if strings.Contains(args[len(args)-2], "down") {
+			return errors.New("Connection refused")
+		}
+		return nil
+	})
+	if got := c.list(); !reflect.DeepEqual(got, []string{"u@a", "u@down"}) {
+		t.Fatalf("checked %v, want only the stale hosts", got)
+	}
+	if ch := checkOf(t, s, "alpha.nl"); ch == nil || !ch.OK {
+		t.Errorf("alpha check = %+v, want ok", ch)
+	}
+	if ch := checkOf(t, s, "beta.nl"); ch == nil || ch.OK || ch.Error != "Connection refused" {
+		t.Errorf("beta check = %+v, want failed", ch)
+	}
+
+	// Reloading (after an edit, a shell, ...) does not check again.
+	d.send(d.app.(App).load(-1)())
+	if got := c.list(); len(got) != 2 {
+		t.Errorf("reload checked again: %v", got)
+	}
+
+	d.keys("j") // beta.nl
+	view := ansi.Strip(d.app.View().Content)
+	if !strings.Contains(view, "SSH check") || !strings.Contains(view, "failed") {
+		t.Errorf("detail panel misses the failed check:\n%s", view)
+	}
+}
+
+func TestCheckKeys(t *testing.T) {
+	s, err := store.Open(filepath.Join(t.TempDir(), "db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { s.Close() })
+	ctx := context.Background()
+	for _, name := range []string{"alpha.nl", "beta.nl"} {
+		h, _ := s.Create(ctx, store.Host{Name: name, User: "u", Hostname: name})
+		s.SaveCheck(ctx, h.ID, store.Check{At: time.Now(), OK: true})
+	}
+	d, c := setupWith(t, s, func(context.Context, []string) error { return nil })
+	if got := c.list(); len(got) != 0 {
+		t.Fatalf("fresh hosts were checked on open: %v", got)
+	}
+	d.keys("p")
+	if got := c.list(); !reflect.DeepEqual(got, []string{"u@alpha.nl"}) {
+		t.Fatalf("p checked %v, want the selected host", got)
+	}
+	d.keys("P")
+	if got := c.list(); !reflect.DeepEqual(got, []string{"u@alpha.nl", "u@alpha.nl", "u@beta.nl"}) {
+		t.Fatalf("P checked %v, want every host", got)
 	}
 }

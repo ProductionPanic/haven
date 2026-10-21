@@ -195,3 +195,40 @@ func TestEmpty(t *testing.T) {
 		t.Errorf("actions on empty list produced %v", msgs)
 	}
 }
+
+func TestCheckStatus(t *testing.T) {
+	m := newModel(t)
+	if got := plain(m); !strings.Contains(got, "SSH check   never") && !strings.Contains(got, "never") {
+		t.Errorf("unchecked host should say never:\n%s", got)
+	}
+	sel, _ := m.Selected()
+	m.SetChecking(sel.ID)
+	if got := plain(m); !strings.Contains(got, "checking…") {
+		t.Errorf("running check not shown:\n%s", got)
+	}
+	m.SetCheck(sel.ID, store.Check{At: now.Add(-2 * time.Minute), Error: "Permission denied (publickey)."})
+	got := plain(m)
+	if !strings.Contains(got, "failed · 2m ago") {
+		t.Errorf("failed check not shown:\n%s", got)
+	}
+	if m.Checking(sel.ID) {
+		t.Error("host still marked as checking")
+	}
+	// The result survives filtering, which rebuilds the rows from all hosts.
+	m, _ = press(m, "/", "a", "p", "p", "e", "l")
+	if got := plain(m); !strings.Contains(got, "failed · 2m ago") {
+		t.Errorf("check lost after filtering:\n%s", got)
+	}
+}
+
+func TestCheckKeysEmitMessages(t *testing.T) {
+	m := newModel(t)
+	_, msgs := press(m, "p")
+	if len(msgs) != 1 || len(msgs[0].(CheckMsg).Hosts) != 1 {
+		t.Fatalf("p = %#v, want a CheckMsg for the selected host", msgs)
+	}
+	_, msgs = press(m, "P")
+	if len(msgs) != 1 || len(msgs[0].(CheckMsg).Hosts) != len(testHosts()) {
+		t.Fatalf("P = %#v, want a CheckMsg for every host", msgs)
+	}
+}

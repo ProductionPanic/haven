@@ -7,6 +7,7 @@ type KeyMap struct {
 	Up, Down, PageUp, PageDown, Home, End key.Binding
 
 	Connect, Shell, Files, Add, Edit, Delete, Copy key.Binding
+	Check, CheckAll                                key.Binding
 	Tag, Group, Filter, ClearFilter                key.Binding
 	Help, Quit                                     key.Binding
 }
@@ -29,6 +30,9 @@ func DefaultKeyMap() KeyMap {
 		Delete:  key.NewBinding(key.WithKeys("d"), key.WithHelp("d", "delete")),
 		Copy:    key.NewBinding(key.WithKeys("y"), key.WithHelp("y", "copy user@host")),
 
+		Check:    key.NewBinding(key.WithKeys("p"), key.WithHelp("p", "check ssh")),
+		CheckAll: key.NewBinding(key.WithKeys("P"), key.WithHelp("P", "check all")),
+
 		Tag:         key.NewBinding(key.WithKeys("t"), key.WithHelp("t", "cycle tag")),
 		Group:       key.NewBinding(key.WithKeys("g"), key.WithHelp("g", "group by server")),
 		Filter:      key.NewBinding(key.WithKeys("/"), key.WithHelp("/", "filter")),
@@ -49,7 +53,7 @@ func (k KeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Up, k.Down, k.PageUp, k.PageDown, k.Home, k.End},
 		{k.Connect, k.Shell, k.Files, k.Copy},
-		{k.Add, k.Edit, k.Delete},
+		{k.Add, k.Edit, k.Delete, k.Check, k.CheckAll},
 		{k.Filter, k.ClearFilter, k.Tag, k.Group},
 		{k.Help, k.Quit},
 	}

@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,7 +13,7 @@ import (
 // run executes the root command with args against db and returns stdout.
 func run(t *testing.T, db string, args ...string) (string, error) {
 	t.Helper()
-	a := &app{}
+	a := &app{checkRun: fakeSSH}
 	defer a.close()
 	root := a.rootCmd()
 	var out, errOut bytes.Buffer
@@ -104,4 +105,14 @@ func TestLegacyAutoImport(t *testing.T) {
 	if _, err := os.Stat(legacyFile + ".bak"); err != nil {
 		t.Errorf("legacy file not renamed: %v", err)
 	}
+}
+
+// fakeSSH succeeds unless the destination contains "down".
+func fakeSSH(_ context.Context, args []string) error {
+	for _, a := range args {
+		if strings.Contains(a, "down") {
+			return errors.New("Connection refused")
+		}
+	}
+	return nil
 }

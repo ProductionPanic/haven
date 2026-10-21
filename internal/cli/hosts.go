@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	"github.com/ProductionPanic/haven/v2/internal/check"
 	"github.com/ProductionPanic/haven/v2/internal/match"
 	"github.com/ProductionPanic/haven/v2/internal/store"
 	"github.com/ProductionPanic/haven/v2/internal/tui/hostform"
@@ -101,14 +102,14 @@ func (a *app) lsCmd() *cobra.Command {
 				return enc.Encode(hosts)
 			}
 			tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
-			fmt.Fprintln(tw, "NAME\tTARGET\tPORT\tENV\tTAGS\tLAST USED")
+			fmt.Fprintln(tw, "NAME\tTARGET\tPORT\tENV\tTAGS\tLAST USED\tSSH")
 			for _, h := range hosts {
 				last := "-"
 				if h.LastUsedAt != nil {
 					last = humanizeSince(time.Since(*h.LastUsedAt))
 				}
-				fmt.Fprintf(tw, "%s\t%s\t%d\t%s\t%s\t%s\n", h.Name, h.Target(), h.Port,
-					dash(h.Environment), dash(strings.Join(h.Tags, ",")), last)
+				fmt.Fprintf(tw, "%s\t%s\t%d\t%s\t%s\t%s\t%s\n", h.Name, h.Target(), h.Port,
+					dash(h.Environment), dash(strings.Join(h.Tags, ",")), last, check.Status(h.Check))
 			}
 			return tw.Flush()
 		},
@@ -190,7 +191,7 @@ func (f *hostFlags) apply(fs *pflag.FlagSet, h *store.Host) {
 func anyChanged(fs *pflag.FlagSet) bool {
 	changed := false
 	fs.Visit(func(fl *pflag.Flag) {
-		if fl.Name != "db" {
+		if fl.Name != "db" && fl.Name != "no-check" {
 			changed = true
 		}
 	})
@@ -206,6 +207,7 @@ func (a *app) nameTaken(cmd *cobra.Command, except int64) func(string) bool {
 
 func (a *app) addCmd() *cobra.Command {
 	var f hostFlags
+	var noCheck bool
 	cmd := &cobra.Command{
 		Use:   "add [name] [destination]",
 		Short: "Add a host (interactive form when no destination is given)",
@@ -253,11 +255,15 @@ given.`,
 			if reserved(h.Name) {
 				fmt.Fprintf(cmd.ErrOrStderr(), "Note: %q is also a subcommand; connect with \"haven ssh %s\".\n", h.Name, h.Name)
 			}
-			return nil
+			if noCheck {
+				return nil
+			}
+			return a.warnIfDown(cmd, h)
 		},
 	}
 	f.register(cmd.Flags(), false)
 	cmd.Flags().StringVar(&f.name, "name", "", `host name (for "haven add ssh <destination>")`)
+	cmd.Flags().BoolVar(&noCheck, "no-check", false, "don't try the ssh login after saving")
 	return cmd
 }
 
@@ -277,6 +283,7 @@ func (a *app) defaultName(cmd *cobra.Command, h store.Host) string {
 
 func (a *app) editCmd() *cobra.Command {
 	var f hostFlags
+	var noCheck bool
 	cmd := &cobra.Command{
 		Use:               "edit <query>",
 		Short:             "Edit a host (interactive form unless field flags are given)",
@@ -306,10 +313,14 @@ func (a *app) editCmd() *cobra.Command {
 				return err
 			}
 			fmt.Fprintf(cmd.ErrOrStderr(), "Saved %s (%s)\n", h.Name, h.Target())
-			return nil
+			if noCheck {
+				return nil
+			}
+			return a.warnIfDown(cmd, h)
 		},
 	}
 	f.register(cmd.Flags(), true)
+	cmd.Flags().BoolVar(&noCheck, "no-check", false, "don't try the ssh login after saving")
 	return cmd
 }
 
