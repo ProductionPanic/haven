@@ -238,6 +238,59 @@ func TestCancel(t *testing.T) {
 	assertNoParts(t, dst)
 }
 
+// gatedFS blocks listing the directory "later" until gate is closed.
+type gatedFS struct {
+	vfs.LocalFS
+	gate chan struct{}
+}
+
+func (g gatedFS) ReadDir(p string) ([]vfs.Entry, error) {
+	if filepath.Base(p) == "later" {
+		select {
+		case <-g.gate:
+		case <-time.After(5 * time.Second):
+			return nil, os.ErrDeadlineExceeded
+		}
+	}
+	return g.LocalFS.ReadDir(p)
+}
+
+func TestCopiesWhileScanning(t *testing.T) {
+	src, dst := t.TempDir(), t.TempDir()
+	mkfile(t, filepath.Join(src, "a.txt"), "first", t0)
+	mkfile(t, filepath.Join(src, "later", "b.txt"), "second", t0)
+
+	// The scan can't finish until a file has been copied while scanning.
+	fsys := gatedFS{gate: make(chan struct{})}
+	e := New(2)
+	finished := make(chan Progress, 1)
+	go func() {
+		open := true
+		for ev := range e.Events() {
+			p, ok := ev.(Progress)
+			if !ok {
+				continue
+			}
+			if open && p.Scanning && p.Settled > 0 {
+				close(fsys.gate)
+				open = false
+			}
+			if p.Finished {
+				finished <- p
+				return
+			}
+		}
+	}()
+	e.Start(context.Background(), Request{Src: fsys, Sources: []string{filepath.Join(src, "a.txt"), filepath.Join(src, "later")}, Dst: vfs.LocalFS{}, DstDir: dst})
+	p := <-finished
+	if p.Err != nil || p.Scanning || p.Settled != 2 {
+		t.Fatalf("progress: %+v", p)
+	}
+	if got := readFile(t, filepath.Join(dst, "later", "b.txt")); got != "second" {
+		t.Errorf("b.txt = %q", got)
+	}
+}
+
 func TestFreeName(t *testing.T) {
 	dir := t.TempDir()
 	mkfile(t, filepath.Join(dir, "a.tar.gz"), "", t0)

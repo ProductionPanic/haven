@@ -19,6 +19,10 @@ import (
 // a half-written file under the real name.
 const PartSuffix = ".haven-part"
 
+// scanAhead is how many found files may wait for a worker, letting the scan
+// run ahead of the copies so the totals fill in sooner.
+const scanAhead = 4096
+
 // Policy decides what happens when the destination already exists.
 type Policy int
 
@@ -93,6 +97,7 @@ type Progress struct {
 	Failed         int
 	Current        string // file being copied
 	Rate           float64
+	Scanning       bool // still walking the sources; Files and Total grow
 	Finished       bool
 	Cancelled      bool
 	Err            error // first error, if any
@@ -185,14 +190,15 @@ type batch struct {
 
 	askMu sync.Mutex // one conflict question at a time
 
-	mu      sync.Mutex
-	policy  Policy
-	files   []*File
-	total   int64
-	done    atomic.Int64
-	current string
-	err     error
-	start   time.Time // first byte copied
+	mu       sync.Mutex
+	policy   Policy
+	files    []*File
+	total    int64
+	done     atomic.Int64
+	current  string
+	err      error
+	start    time.Time // first byte copied
+	scanning bool
 
 	// moving-average rate for the live display
 	rate     float64
@@ -206,17 +212,12 @@ func (e *Engine) run(ctx context.Context, id int, req Request) Progress {
 	b := &batch{id: id, req: req, policy: req.Policy}
 	b.label = label(req)
 
-	files, err := expand(ctx, req)
-	if err != nil {
-		b.err = err
-	}
-	b.files = files
-	for _, f := range files {
-		b.total += f.Size
-	}
+	// Large directories can take a while to walk, so files are queued and
+	// copied as they're found while the scan continues.
+	b.scanning = true
 	e.emit(b, true)
 
-	jobs := make(chan *File)
+	jobs := make(chan *File, scanAhead)
 	var wg sync.WaitGroup
 	for w := 0; w < e.workers; w++ {
 		wg.Add(1)
@@ -227,17 +228,30 @@ func (e *Engine) run(ctx context.Context, id int, req Request) Progress {
 			}
 		}()
 	}
-	for _, f := range files {
-		if ctx.Err() != nil {
-			f.State = Cancelled
-			continue
+	err := expand(ctx, req, func(f *File) {
+		b.mu.Lock()
+		b.files = append(b.files, f)
+		b.total += f.Size
+		b.mu.Unlock()
+		e.emit(b, false)
+		if ctx.Err() == nil {
+			select {
+			case jobs <- f:
+				return
+			case <-ctx.Done():
+			}
 		}
-		select {
-		case jobs <- f:
-		case <-ctx.Done():
-			f.State = Cancelled
-		}
+		b.mu.Lock()
+		f.State = Cancelled
+		b.mu.Unlock()
+	})
+	b.mu.Lock()
+	b.scanning = false
+	if b.err == nil {
+		b.err = err
 	}
+	b.mu.Unlock()
+	e.emit(b, true)
 	close(jobs)
 	wg.Wait()
 
@@ -267,6 +281,7 @@ func (b *batch) progress(finished bool) Progress {
 	p := Progress{
 		Batch: b.id, Label: b.label, Total: b.total, Done: b.done.Load(),
 		Files: len(b.files), Current: b.current, Finished: finished, Err: b.err,
+		Scanning: b.scanning,
 	}
 	for _, f := range b.files {
 		switch f.State {
@@ -323,10 +338,10 @@ func (e *Engine) emit(b *batch, force bool) {
 	}
 }
 
-// expand walks the sources and returns one File per regular file, creating
-// nothing yet. Directories become their files under DstDir/<dirname>/...
-func expand(ctx context.Context, req Request) ([]*File, error) {
-	var files []*File
+// expand walks the sources and calls found with one File per regular file,
+// creating nothing yet. Directories become their files under
+// DstDir/<dirname>/...
+func expand(ctx context.Context, req Request, found func(*File)) error {
 	var walk func(src, dst string) error
 	walk = func(src, dst string) error {
 		if err := ctx.Err(); err != nil {
@@ -340,7 +355,7 @@ func expand(ctx context.Context, req Request) ([]*File, error) {
 			return nil
 		}
 		if !e.IsDir {
-			files = append(files, &File{SrcPath: src, DstPath: dst, Size: e.Size, ModTime: e.ModTime, Mode: uint32(e.Mode.Perm())})
+			found(&File{SrcPath: src, DstPath: dst, Size: e.Size, ModTime: e.ModTime, Mode: uint32(e.Mode.Perm())})
 			return nil
 		}
 		if e.Link != "" {
@@ -353,7 +368,7 @@ func expand(ctx context.Context, req Request) ([]*File, error) {
 		vfs.Sort(children, vfs.SortName)
 		if len(children) == 0 {
 			// Represent empty directories so they're still created.
-			files = append(files, &File{SrcPath: src, DstPath: dst, IsDir: true})
+			found(&File{SrcPath: src, DstPath: dst, IsDir: true})
 		}
 		for _, c := range children {
 			if err := walk(req.Src.Join(src, c.Name), req.Dst.Join(dst, c.Name)); err != nil {
@@ -372,7 +387,7 @@ func expand(ctx context.Context, req Request) ([]*File, error) {
 			errs = append(errs, fmt.Errorf("%s: %w", s, err))
 		}
 	}
-	return files, errors.Join(errs...)
+	return errors.Join(errs...)
 }
 
 func (e *Engine) setState(b *batch, f *File, s State, err error) {

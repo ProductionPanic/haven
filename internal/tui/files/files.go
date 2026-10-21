@@ -749,11 +749,16 @@ func (m Model) transferView() string {
 			break
 		}
 		p := m.batches[id]
+		// While scanning the total is still growing, so a percentage or
+		// ETA would be misleading.
 		info := fmt.Sprintf(" %3.0f%%  %s/%s", p.Fraction()*100, transfer.FormatBytes(p.Done), transfer.FormatBytes(p.Total))
+		if p.Scanning {
+			info = fmt.Sprintf(" Scanning for files… %d found  %s/%s", p.Files, transfer.FormatBytes(p.Done), transfer.FormatBytes(p.Total))
+		}
 		if p.Rate > 0 {
 			info += "  " + transfer.FormatRate(p.Rate)
 		}
-		if eta := p.ETA(); eta != "" {
+		if eta := p.ETA(); eta != "" && !p.Scanning {
 			info += "  ETA " + eta
 		}
 		label := p.Label
@@ -763,7 +768,11 @@ func (m Model) transferView() string {
 		labelW := max(10, m.width-m.bar.Width()-lipgloss.Width(info)-3)
 		label = ansi.Truncate(label, labelW, "…")
 		label += strings.Repeat(" ", max(0, labelW-lipgloss.Width(label)))
-		lines = append(lines, " "+label+" "+m.bar.ViewAs(p.Fraction())+m.theme.Faint.Render(info))
+		bar := m.bar.ViewAs(p.Fraction())
+		if p.Scanning {
+			bar = m.bar.ViewAs(0)
+		}
+		lines = append(lines, " "+label+" "+bar+m.theme.Faint.Render(info))
 	}
 	return strings.Join(lines, "\n")
 }

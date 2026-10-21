@@ -257,10 +257,14 @@ func plural(n int, word string) string {
 func progressLine(p transfer.Progress) string {
 	s := fmt.Sprintf("%s  %3.0f%%  %s/%s", p.Label, p.Fraction()*100,
 		transfer.FormatBytes(p.Done), transfer.FormatBytes(p.Total))
+	if p.Scanning {
+		s = fmt.Sprintf("%s  scanning… %d found  %s/%s", p.Label, p.Files,
+			transfer.FormatBytes(p.Done), transfer.FormatBytes(p.Total))
+	}
 	if p.Rate > 0 {
 		s += "  " + transfer.FormatRate(p.Rate)
 	}
-	if eta := p.ETA(); eta != "" {
+	if eta := p.ETA(); eta != "" && !p.Scanning {
 		s += "  ETA " + eta
 	}
 	return s
