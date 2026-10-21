@@ -39,6 +39,17 @@ func TestCommands(t *testing.T) {
 
 	mustRun("add", "appelenburg.nl", "web@nuthatch", "--path", "/var/www", "-t", "wp")
 	mustRun("add", "other.nl", "srv2", "-p", "2222")
+	mustRun("add", "ssh", "handelsvo_cb@gradual-giraffe.sys.rootnet.io")
+	mustRun("add", "ssh", "handelsvo_cb@other-giraffe.sys.rootnet.io")
+
+	if got := mustRun("get", "handelsvo_cb"); got != "handelsvo_cb@gradual-giraffe.sys.rootnet.io" {
+		t.Errorf("get after add ssh = %q", got)
+	}
+	if got := mustRun("get", "handelsvo_cb@other"); got != "handelsvo_cb@other-giraffe.sys.rootnet.io" {
+		t.Errorf("get after add ssh with taken name = %q", got)
+	}
+	mustRun("rm", "handelsvo_cb@other", "--yes")
+	mustRun("rm", "handelsvo_cb", "--yes")
 
 	if got := mustRun("get", "appel"); got != "web@nuthatch" {
 		t.Errorf("get = %q", got)

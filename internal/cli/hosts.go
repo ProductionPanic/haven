@@ -209,12 +209,20 @@ func (a *app) addCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add [name] [destination]",
 		Short: "Add a host (interactive form when no destination is given)",
+		Long: `Add a host. With a name and a destination the host is saved straight
+away; otherwise an interactive form opens.
+
+"haven add ssh <destination>" works like pasting an ssh command: the host is
+named after the user (or the hostname when there is none) unless --name is
+given.`,
 		Example: `  haven add
-  haven add appelenburg.nl web@nuthatch.sys.rootnet.io --path /var/www/site -t wordpress -e production`,
+  haven add appelenburg.nl web@nuthatch.sys.rootnet.io --path /var/www/site -t wordpress -e production
+  haven add ssh web@nuthatch.sys.rootnet.io -p 2222`,
 		Args: cobra.MaximumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var h store.Host
-			if len(args) > 0 {
+			fromSSH := len(args) == 2 && args[0] == "ssh"
+			if len(args) > 0 && !fromSSH {
 				h.Name = args[0]
 			}
 			if len(args) > 1 {
@@ -224,6 +232,9 @@ func (a *app) addCmd() *cobra.Command {
 				}
 			}
 			f.apply(cmd.Flags(), &h)
+			if fromSSH && h.Name == "" {
+				h.Name = a.defaultName(cmd, h)
+			}
 			if len(args) < 2 {
 				var err error
 				h, err = hostform.Run("Add host", h, a.nameTaken(cmd, 0))
@@ -246,7 +257,22 @@ func (a *app) addCmd() *cobra.Command {
 		},
 	}
 	f.register(cmd.Flags(), false)
+	cmd.Flags().StringVar(&f.name, "name", "", `host name (for "haven add ssh <destination>")`)
 	return cmd
+}
+
+// defaultName names a host added from an ssh destination: the user, or the
+// hostname when there is no user, falling back to the full target when that
+// name is already taken.
+func (a *app) defaultName(cmd *cobra.Command, h store.Host) string {
+	name := h.User
+	if name == "" {
+		name = h.Hostname
+	}
+	if a.nameTaken(cmd, 0)(name) {
+		return h.Target()
+	}
+	return name
 }
 
 func (a *app) editCmd() *cobra.Command {
