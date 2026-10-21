@@ -755,6 +755,9 @@ func (m Model) transferView() string {
 		if p.Scanning {
 			info = fmt.Sprintf(" Scanning for files… %d found  %s/%s", p.Files, transfer.FormatBytes(p.Done), transfer.FormatBytes(p.Total))
 		}
+		if p.Skipped > 0 {
+			info += fmt.Sprintf("  %d skipped", p.Skipped)
+		}
 		if p.Rate > 0 {
 			info += "  " + transfer.FormatRate(p.Rate)
 		}

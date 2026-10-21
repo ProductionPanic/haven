@@ -261,6 +261,9 @@ func progressLine(p transfer.Progress) string {
 		s = fmt.Sprintf("%s  scanning… %d found  %s/%s", p.Label, p.Files,
 			transfer.FormatBytes(p.Done), transfer.FormatBytes(p.Total))
 	}
+	if p.Skipped > 0 {
+		s += fmt.Sprintf("  %d skipped", p.Skipped)
+	}
 	if p.Rate > 0 {
 		s += "  " + transfer.FormatRate(p.Rate)
 	}

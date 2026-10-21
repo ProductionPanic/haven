@@ -342,13 +342,11 @@ func (e *Engine) emit(b *batch, force bool) {
 // creating nothing yet. Directories become their files under
 // DstDir/<dirname>/...
 func expand(ctx context.Context, req Request, found func(*File)) error {
-	var walk func(src, dst string) error
-	walk = func(src, dst string) error {
+	// Children are walked with the entry their ReadDir returned: a Stat per
+	// file would cost a round trip each on a remote host.
+	var walk func(src, dst string, e vfs.Entry) error
+	walk = func(src, dst string, e vfs.Entry) error {
 		if err := ctx.Err(); err != nil {
-			return err
-		}
-		e, err := req.Src.Stat(src)
-		if err != nil {
 			return err
 		}
 		if e.Broken {
@@ -371,7 +369,7 @@ func expand(ctx context.Context, req Request, found func(*File)) error {
 			found(&File{SrcPath: src, DstPath: dst, IsDir: true})
 		}
 		for _, c := range children {
-			if err := walk(req.Src.Join(src, c.Name), req.Dst.Join(dst, c.Name)); err != nil {
+			if err := walk(req.Src.Join(src, c.Name), req.Dst.Join(dst, c.Name), c); err != nil {
 				return err
 			}
 		}
@@ -383,7 +381,11 @@ func expand(ctx context.Context, req Request, found func(*File)) error {
 		if req.DstName != "" && len(req.Sources) == 1 {
 			name = req.DstName
 		}
-		if err := walk(s, req.Dst.Join(req.DstDir, name)); err != nil {
+		e, err := req.Src.Stat(s)
+		if err == nil {
+			err = walk(s, req.Dst.Join(req.DstDir, name), e)
+		}
+		if err != nil {
 			errs = append(errs, fmt.Errorf("%s: %w", s, err))
 		}
 	}
