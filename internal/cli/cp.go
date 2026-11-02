@@ -12,7 +12,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/ProductionPanic/haven/v2/internal/sshx"
+	"github.com/ProductionPanic/haven/v2/internal/store"
 	"github.com/ProductionPanic/haven/v2/internal/transfer"
 	"github.com/ProductionPanic/haven/v2/internal/vfs"
 )
@@ -33,36 +33,85 @@ func parseLocation(arg string) location {
 	return location{query: arg[:i], path: arg[i+1:]}
 }
 
+// target is a resolved location: a file system, an absolute path on it and,
+// for remote locations, the host.
+type target struct {
+	fs   vfs.FS
+	path string
+	host *store.Host // nil for local paths
+}
+
+// display renders the location the way a user types it.
+func (t target) display() string {
+	if t.host == nil {
+		return t.path
+	}
+	return t.host.Name + ":" + t.path
+}
+
 // connections opens each remote host once.
 type connections struct {
-	a     *app
-	ctx   context.Context
+	a   *app
+	ctx context.Context
+	// strict never opens a picker: an ambiguous host query is an error.
+	// Commands meant for scripts and LLMs set it.
+	strict bool
+	// guard (optional) vets a host before haven connects to it.
+	guard func(store.Host) error
 	byID  map[int64]*vfs.RemoteFS
-	names map[string]*vfs.RemoteFS
+	names map[string]resolvedHost
+}
+
+type resolvedHost struct {
+	fs   *vfs.RemoteFS
+	host store.Host
+}
+
+func newConnections(ctx context.Context, a *app) *connections {
+	return &connections{a: a, ctx: ctx, byID: map[int64]*vfs.RemoteFS{}, names: map[string]resolvedHost{}}
 }
 
 func (c *connections) fs(loc location) (vfs.FS, string, error) {
+	t, err := c.target(loc)
+	return t.fs, t.path, err
+}
+
+func (c *connections) target(loc location) (target, error) {
 	if loc.query == "" {
 		p, err := filepath.Abs(expandHome(loc.path))
-		return vfs.LocalFS{}, p, err
+		return target{fs: vfs.LocalFS{}, path: p}, err
 	}
-	r, ok := c.names[loc.query]
+	rh, ok := c.names[loc.query]
 	if !ok {
-		h, err := c.a.resolve(c.ctx, loc.query)
-		if err != nil {
-			return nil, "", err
+		var h store.Host
+		var err error
+		if c.strict {
+			h, err = c.a.resolveStrict(c.ctx, loc.query)
+		} else {
+			h, err = c.a.resolve(c.ctx, loc.query)
 		}
-		if r, ok = c.byID[h.ID]; !ok {
-			if r, err = sshx.DialSFTP(c.ctx, h); err != nil {
-				return nil, "", err
+		if err != nil {
+			return target{}, err
+		}
+		if c.guard != nil {
+			if err := c.guard(h); err != nil {
+				return target{}, err
+			}
+		}
+		r, ok := c.byID[h.ID]
+		if !ok {
+			if r, err = c.a.dialHost(c.ctx, h); err != nil {
+				return target{}, err
 			}
 			c.byID[h.ID] = r
 			_ = c.a.store.MarkUsed(c.ctx, h.ID)
 		}
-		c.names[loc.query] = r
+		rh = resolvedHost{fs: r, host: h}
+		c.names[loc.query] = rh
 	}
-	p, err := r.Resolve(loc.path)
-	return r, p, err
+	p, err := rh.fs.Resolve(loc.path)
+	host := rh.host
+	return target{fs: rh.fs, path: p, host: &host}, err
 }
 
 func (c *connections) close() {
@@ -78,6 +127,20 @@ func expandHome(p string) string {
 		}
 	}
 	return p
+}
+
+// completeLocations completes host names (as "host:") and falls back to
+// file names for anything that looks like a path.
+func (a *app) completeLocations(cmd *cobra.Command, args []string, toComplete string) ([]cobra.Completion, cobra.ShellCompDirective) {
+	if strings.Contains(toComplete, ":") || strings.ContainsAny(toComplete, "/.~") {
+		return nil, cobra.ShellCompDirectiveDefault
+	}
+	hosts, dir := a.completeHosts(cmd, args, toComplete)
+	for i := range hosts {
+		name, _, _ := strings.Cut(string(hosts[i]), "\t")
+		hosts[i] = cobra.Completion(name + ":")
+	}
+	return hosts, dir | cobra.ShellCompDirectiveNoSpace
 }
 
 func (a *app) cpCmd() *cobra.Command {
@@ -96,18 +159,8 @@ interrupted copy never leaves a half-written file in place.`,
   haven cp appel:/var/www/site/wp-config.php .
   haven cp -r ./theme appel:wp-content/themes/   # directories are always recursive
   haven cp appel:backup.tar.gz other:/srv/       # host to host`,
-		Args: cobra.MinimumNArgs(2),
-		ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]cobra.Completion, cobra.ShellCompDirective) {
-			if strings.Contains(toComplete, ":") || strings.ContainsAny(toComplete, "/.~") {
-				return nil, cobra.ShellCompDirectiveDefault
-			}
-			hosts, dir := a.completeHosts(cmd, args, toComplete)
-			for i := range hosts {
-				name, _, _ := strings.Cut(string(hosts[i]), "\t")
-				hosts[i] = cobra.Completion(name + ":")
-			}
-			return hosts, dir | cobra.ShellCompDirectiveNoSpace
-		},
+		Args:              cobra.MinimumNArgs(2),
+		ValidArgsFunction: a.completeLocations,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			policy := transfer.Ask
 			switch {
@@ -134,7 +187,7 @@ interrupted copy never leaves a half-written file in place.`,
 }
 
 func (a *app) copy(ctx context.Context, out io.Writer, srcArgs []string, dstArg string, policy transfer.Policy, workers int) error {
-	conns := &connections{a: a, ctx: ctx, byID: map[int64]*vfs.RemoteFS{}, names: map[string]*vfs.RemoteFS{}}
+	conns := newConnections(ctx, a)
 	defer conns.close()
 
 	// All sources must live on the same file system.
