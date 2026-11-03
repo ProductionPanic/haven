@@ -16,3 +16,16 @@ idee 2 in `docs/PLAN.md` §9, maar met een echte login in plaats van alleen een 
 - [x] `haven ls` krijgt een kolom met de laatste status, en `--json` bevat de check-velden.
 - [x] README: `haven check`, de stip in de host manager en `--no-check` beschrijven.
 - [x] Tests: store-migratie en opslag, het check-package met een nep-ssh, `haven check` (tabel, exit code, `--json`), de waarschuwing na add, en teatest-snapshots van de hosts-lijst met stippen. Controleer daarna in een echte terminal (desktop-breedte 120 kolommen en smal 60 kolommen, als vervanging voor de telefoonbreedte) dat de stippen en het detailpaneel goed staan.
+
+## 2. Commando's voor LLM's
+
+Wens van de gebruiker (2026-11-02): bestanden lezen, maken, wijzigen en verwijderen als commando's die een LLM kan aanroepen, een `llm`-commando met documentatie, en commando's om de servers van haven te tonen en erop te schrijven.
+
+- [x] Besloten (2026-11-02): "schrijven naar de servers" is geen apart commando en geen commando uitvoeren via ssh. De bestandscommando's nemen `host:path` (zelfde syntax als `haven cp`), en `haven servers` toont de hosts.
+- [x] Besloten (2026-11-02): de bestandscommando's staan onder `haven file` (`list`, `read`, `create`, `modify`, `delete`), omdat `delete` al een alias van `haven rm` (host verwijderen) is. Alleen `file`, `servers` en `llm` komen in `reserved()`.
+- [x] Besloten (2026-11-02): nooit een prompt of picker, een host-query moet precies één host matchen. Gevaarlijke dingen vragen een expliciete flag: `create --force`, `delete --recursive`, en `--allow-production` voor elke schrijfactie op een productiehost.
+- [x] `haven file list|read|create|modify|delete`, met `--json`, inhoud via `--content` of stdin, en atomisch schrijven via `transfer.PutFile`.
+- [x] `haven servers [query] [--tag]` geeft JSON met naam, target, productie-vlag, tags, notities, laatste ssh-check en `file_prefix`, zonder sleutels of ssh-argumenten.
+- [x] `haven llm` print `internal/cli/llm.md` (ingebed), zonder de database te openen. Een test controleert dat de gids elk `file`-subcommando noemt.
+- [x] README en tests (lokaal, via een in-process SFTP-server voor `host:path`, productie-guard, symlinks, binaire bestanden).
+- [ ] Controleren tegen een echte server (alleen getest met een in-process SFTP-server).

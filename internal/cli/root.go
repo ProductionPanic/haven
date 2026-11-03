@@ -22,6 +22,7 @@ import (
 	"github.com/ProductionPanic/haven/v2/internal/store"
 	"github.com/ProductionPanic/haven/v2/internal/tui"
 	"github.com/ProductionPanic/haven/v2/internal/tui/picker"
+	"github.com/ProductionPanic/haven/v2/internal/vfs"
 )
 
 // app carries state shared by all commands.
@@ -29,6 +30,8 @@ type app struct {
 	dbPath   string
 	store    *store.Store
 	checkRun check.Runner // nil means check.SSH
+	// dial opens an SFTP session to a host; nil means sshx.DialSFTP.
+	dial func(context.Context, store.Host) (*vfs.RemoteFS, error)
 }
 
 // Execute runs the haven command line.
@@ -100,6 +103,9 @@ one of the subcommands.`,
 		a.exportCmd(),
 		a.cpCmd(),
 		a.filesCmd(),
+		a.fileCmd(),
+		a.serversCmd(),
+		a.llmCmd(),
 	)
 	return root
 }
@@ -107,7 +113,7 @@ one of the subcommands.`,
 // reserved reports whether name collides with a subcommand.
 func reserved(name string) bool {
 	switch strings.ToLower(name) {
-	case "ssh", "get", "ls", "add", "edit", "rm", "import", "export", "completion", "help", "ui", "files", "cp", "man", "check":
+	case "ssh", "get", "ls", "add", "edit", "rm", "import", "export", "completion", "help", "ui", "files", "cp", "man", "check", "file", "servers", "llm":
 		return true
 	}
 	return false
@@ -222,6 +228,31 @@ func (a *app) resolve(ctx context.Context, query string) (store.Host, error) {
 		return store.Host{}, ambiguousError(query, matches)
 	}
 	return picker.Pick(title, matches)
+}
+
+// resolveStrict is resolve without any interaction: a query must match
+// exactly one host, otherwise the error lists the candidates.
+func (a *app) resolveStrict(ctx context.Context, query string) (store.Host, error) {
+	hosts, err := a.store.List(ctx, "")
+	if err != nil {
+		return store.Host{}, err
+	}
+	matches := match.Find(hosts, query, time.Now())
+	switch len(matches) {
+	case 0:
+		return store.Host{}, fmt.Errorf(`no host matches %q; run "haven servers" to see the available hosts`, query)
+	case 1:
+		return matches[0], nil
+	}
+	return store.Host{}, ambiguousError(query, matches)
+}
+
+// dialHost opens an SFTP session to h.
+func (a *app) dialHost(ctx context.Context, h store.Host) (*vfs.RemoteFS, error) {
+	if a.dial != nil {
+		return a.dial(ctx, h)
+	}
+	return sshx.DialSFTP(ctx, h)
 }
 
 func ambiguousError(query string, hosts []store.Host) error {

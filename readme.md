@@ -51,6 +51,9 @@ haven rm <query>           remove a host (asks for confirmation unless --yes)
 haven check [query]        check that ssh logins still work (--tag, --json; exit status 1 on failure)
 haven files [query]        two-pane file manager (local ↔ host)
 haven cp <src>... <dst>    copy files, e.g. haven cp ./dump.sql appel:/tmp/
+haven file <verb> <loc>    list, read, create, modify and delete single files, locally or on a host (for scripts and LLMs)
+haven servers [query]      list the hosts as JSON (for scripts and LLMs)
+haven llm                  print a guide on using haven, written for LLMs
 haven import [file]        import TOML or the legacy "name | user@host" format
 haven export               export as TOML or ssh_config (--format ssh-config -o ~/.ssh/config.d/haven)
 haven completion zsh|bash|fish
@@ -157,6 +160,33 @@ file behind. Modification times and permissions are preserved.
 The file manager connects without prompting in the terminal (`BatchMode`), so
 hosts need key or agent authentication; if a host's key isn't known yet,
 connect once with `haven ssh <host>` first.
+
+### Using haven from an LLM
+
+haven can be driven by an LLM or a script: nothing prompts and everything has
+JSON output. `haven llm` prints a guide aimed at LLMs; point your assistant at
+it, for instance with "Run `haven llm` to learn how to use haven" in
+`CLAUDE.md` or `AGENTS.md`.
+
+```bash
+haven servers                                   # which hosts exist (JSON)
+haven file list appel:/var/www/site             # list a directory
+haven file read appel:wp-config.php --numbered  # --offset/--limit for big files
+echo 'hello' | haven file create appel:/tmp/hello.txt
+haven file modify appel:/tmp/hello.txt --old hello --new goodbye
+haven file modify appel:/tmp/hello.txt --append --content '!'
+haven file delete appel:/tmp/hello.txt
+```
+
+Locations are local paths or `host:path`, like `haven cp`. A host query must
+match exactly one host (no picker). Content comes from `--content` or stdin.
+
+The commands are cautious by default: `create` won't replace a file without
+`--force`, `modify --old` needs the text to occur exactly once (or `--all`),
+`delete` won't remove a directory without `--recursive` and never the root or
+home directory, and writes are atomic. Changing files on a host whose
+environment is `production` is refused unless you pass `--allow-production`;
+reading and listing are always allowed.
 
 ### Storage
 
