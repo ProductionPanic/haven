@@ -5,8 +5,6 @@ hosts, browse and edit their files, and copy files between machines. A single
 Go binary with a fuzzy-search TUI, built on your normal `ssh`, so your
 `~/.ssh/config`, keys and agent just work.
 
-> Haven used to be called **rootnet**. See [Coming from rootnet](#coming-from-rootnet).
-
 ![haven host manager: browsing, filtering, grouping by server and tags](docs/demo.gif)
 
 ## Features
@@ -17,22 +15,31 @@ Go binary with a fuzzy-search TUI, built on your normal `ssh`, so your
 * **Shell completion** of host names, tags and flags.
 * **Portable:** a single static binary (SQLite via pure Go, no cgo).
 
-See [docs/PLAN.md](docs/PLAN.md) for the v2 roadmap.
-
 ---
 
 ## Installation
 
-### 1. Prerequisites
-* **Go 1.26+** (older Go toolchains will download 1.26 automatically)
-* [Optional but recommended] **Fira Code** or any Nerd Font for the best TUI experience.
+### Prerequisites
+* An **OpenSSH client** (`ssh` on your `$PATH`). haven never talks to servers
+  itself; it runs `ssh`, so your `~/.ssh/config`, keys and agent are used as-is.
+* **Go 1.26+** to build from source (older Go toolchains download 1.26 automatically).
+* Optional: a [Nerd Font](https://www.nerdfonts.com) for file icons in the file manager.
 
-### 2. Build & Install
+### Install
+Download a binary for your platform from the
+[releases page](https://github.com/ProductionPanic/haven/releases), or build it
+with Go:
+
 ```bash
 go install github.com/ProductionPanic/haven/v2/cmd/haven@latest
 ```
 
-This installs a binary called `haven`.
+This installs a binary called `haven` in `$(go env GOPATH)/bin`.
+
+### Platforms
+haven is developed on macOS and Linux and works there fully. It builds and runs
+on Windows too (with the OpenSSH client that ships with Windows 10 and later),
+with one difference: `ssh` runs as a child process instead of replacing haven.
 
 ---
 
@@ -50,11 +57,11 @@ haven edit <query> [flags] edit a host; without field flags an interactive form 
 haven rm <query>           remove a host (asks for confirmation unless --yes)
 haven check [query]        check that ssh logins still work (--tag, --json; exit status 1 on failure)
 haven files [query]        two-pane file manager (local ↔ host)
-haven cp <src>... <dst>    copy files, e.g. haven cp ./dump.sql appel:/tmp/
+haven cp <src>... <dst>    copy files, e.g. haven cp ./dump.sql acme:/tmp/
 haven file <verb> <loc>    list, read, create, modify and delete single files, locally or on a host (for scripts and LLMs)
 haven servers [query]      list the hosts as JSON (for scripts and LLMs)
 haven llm                  print a guide on using haven, written for LLMs
-haven import [file]        import TOML or the legacy "name | user@host" format
+haven import <file>        import TOML or a plain-text "name | user@host" list
 haven export               export as TOML or ssh_config (--format ssh-config -o ~/.ssh/config.d/haven)
 haven completion zsh|bash|fish
 ```
@@ -103,7 +110,7 @@ Production hosts get a red badge and an extra warning before deletion.
 
 ### File manager
 
-`haven files appel` (or `f` in the host manager) shows your local files on
+`haven files acme` (or `f` in the host manager) shows your local files on
 the left and the host on the right. The local side starts in your current
 directory; the remote side starts in the host's remote path, or where you left
 off last time on that host.
@@ -146,9 +153,9 @@ both, optionally for all remaining files. Production hosts get an extra warning.
 remote locations (relative remote paths start in the login directory):
 
 ```bash
-haven cp ./dump.sql appel:/tmp/
-haven cp appel:/var/www/site/wp-config.php .
-haven cp --newer ./theme appel:wp-content/themes/
+haven cp ./dump.sql acme:/tmp/
+haven cp acme:/var/www/site/wp-config.php .
+haven cp --newer ./theme acme:wp-content/themes/
 ```
 
 Transfers run over your normal `ssh` (same `~/.ssh/config`, keys and agent,
@@ -170,12 +177,12 @@ it, for instance with "Run `haven llm` to learn how to use haven" in
 
 ```bash
 haven servers                                   # which hosts exist (JSON)
-haven file list appel:/var/www/site             # list a directory
-haven file read appel:wp-config.php --numbered  # --offset/--limit for big files
-echo 'hello' | haven file create appel:/tmp/hello.txt
-haven file modify appel:/tmp/hello.txt --old hello --new goodbye
-haven file modify appel:/tmp/hello.txt --append --content '!'
-haven file delete appel:/tmp/hello.txt
+haven file list acme:/var/www/site              # list a directory
+haven file read acme:wp-config.php --numbered   # --offset/--limit for big files
+echo 'hello' | haven file create acme:/tmp/hello.txt
+haven file modify acme:/tmp/hello.txt --old hello --new goodbye
+haven file modify acme:/tmp/hello.txt --append --content '!'
+haven file delete acme:/tmp/hello.txt
 ```
 
 Locations are local paths or `host:path`, like `haven cp`. A host query must
@@ -193,26 +200,9 @@ reading and listing are always allowed.
 Hosts live in a SQLite database at `$XDG_CONFIG_HOME/haven/haven.db`
 (default `~/.config/haven/haven.db`). Override it with `HAVEN_DB` or `--db`.
 
-On first run, an existing `~/rootnet_hosts.txt` is imported automatically and
-renamed to `~/rootnet_hosts.txt.bak`. Use `haven export > hosts.toml` /
-`haven import hosts.toml` for bulk edits, backups and syncing between machines.
-
-### Coming from rootnet
-
-Haven is the same tool under a new name. To switch:
-
-```bash
-go install github.com/ProductionPanic/haven/v2/cmd/haven@latest
-rm "$(go env GOPATH)/bin/rootnet"          # the old binary
-haven completion zsh > "${fpath[1]}/_haven" # regenerate completions
-```
-
-- Your hosts come along automatically: the first time haven runs, it moves
-  `~/.config/rootnet/rootnet.db` to `~/.config/haven/haven.db` and says so.
-- `ROOTNET_DB` and `ROOTNET_ICONS` still work; `HAVEN_DB` and `HAVEN_ICONS`
-  take precedence.
-- If you exported an ssh config, re-run `haven export --format ssh-config -o …`.
-- Muscle memory: `alias rootnet=haven`.
+Use `haven export > hosts.toml` / `haven import hosts.toml` for bulk edits,
+backups and syncing between machines. `haven import` also reads a plain-text
+list with one `name | user@host` per line (`--format txt`).
 
 ### Shell completion
 
@@ -224,3 +214,16 @@ haven completion bash > /etc/bash_completion.d/haven
 # fish
 haven completion fish > ~/.config/fish/completions/haven.fish
 ```
+
+---
+
+## Contributing
+
+Bug reports, ideas and pull requests are welcome. See
+[CONTRIBUTING.md](CONTRIBUTING.md) for how to build haven, run the tests and
+find your way around the code. To report a security problem, see
+[SECURITY.md](SECURITY.md).
+
+## License
+
+haven is released under the [MIT License](LICENSE).

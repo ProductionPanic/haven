@@ -1,6 +1,7 @@
 # Regenerate the README demo:  vhs docs/demo.tape
 # Expects `haven` on $PATH and HAVEN_DB pointing at a demo database
-# with fictional hosts (see docs/demo-hosts.sh).
+# with fictional hosts (see docs/demo-hosts.sh). Put docs/demo-ssh on $PATH
+# as "ssh" so their login checks show up green (see the comment in it).
 Output docs/demo.gif
 
 Set Shell "bash"

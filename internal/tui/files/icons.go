@@ -12,14 +12,9 @@ import (
 )
 
 // IconsFromEnv reports whether Nerd Font icons should be shown. They are on
-// unless HAVEN_ICONS (or the former ROOTNET_ICONS) is set to
-// off/none/0/false.
+// unless HAVEN_ICONS is set to off/none/0/false/no.
 func IconsFromEnv() bool {
-	v := os.Getenv("HAVEN_ICONS")
-	if v == "" {
-		v = os.Getenv("ROOTNET_ICONS")
-	}
-	switch strings.ToLower(v) {
+	switch strings.ToLower(os.Getenv("HAVEN_ICONS")) {
 	case "off", "none", "0", "false", "no":
 		return false
 	}

@@ -151,6 +151,9 @@ func TestBrowse(t *testing.T) {
 	if r.cwd != filepath.Join(e.remote, "site") || !reflect.DeepEqual(names(r), []string{"..", "wp-config.php"}) {
 		t.Fatalf("remote listing %s %v", r.cwd, names(r))
 	}
+	// Long titles are truncated on the left, and temp dirs can be long (macOS
+	// uses /var/folders/...), so make the panes wide enough for the full path.
+	e.m.SetSize(400, 30)
 	v := e.view()
 	for _, want := range []string{"Local: ", "test.nl: " + filepath.Join(e.remote, "site"), "wp-content/", "wp-config.php"} {
 		if !strings.Contains(v, want) {

@@ -16,7 +16,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/ProductionPanic/haven/v2/internal/check"
-	"github.com/ProductionPanic/haven/v2/internal/legacy"
 	"github.com/ProductionPanic/haven/v2/internal/match"
 	"github.com/ProductionPanic/haven/v2/internal/sshx"
 	"github.com/ProductionPanic/haven/v2/internal/store"
@@ -71,16 +70,16 @@ otherwise. Results are ranked by how often and how
 recently you used them. Use "haven ssh <query>" when a host is named like
 one of the subcommands.`,
 		Example: `  haven                    # open the host manager
-  haven appel              # connect to appelenburg.nl
-  haven get appel          # print web@server for use in scripts
+  haven acme               # connect to acme-shop.example
+  haven get acme           # print web@server for use in scripts
   haven add                # add a host interactively
   haven check              # check that every ssh login still works
-  scp dump.sql $(haven get appel):/tmp/`,
+  scp dump.sql $(haven get acme):/tmp/`,
 		Args:              cobra.ArbitraryArgs,
 		ValidArgsFunction: a.completeHosts,
 		SilenceUsage:      true,
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			return a.open(cmd.ErrOrStderr())
+			return a.open()
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
@@ -131,8 +130,8 @@ func (a *app) sshCmd() *cobra.Command {
 	}
 }
 
-// open opens the database, importing ~/rootnet_hosts.txt on first run.
-func (a *app) open(notice interface{ Write([]byte) (int, error) }) error {
+// open opens the database.
+func (a *app) open() error {
 	if a.store != nil {
 		return nil
 	}
@@ -142,56 +141,12 @@ func (a *app) open(notice interface{ Write([]byte) (int, error) }) error {
 		if path, err = store.DefaultPath(); err != nil {
 			return err
 		}
-		if store.EnvPath() == "" {
-			// haven used to be called rootnet; bring its hosts along.
-			old, err := store.MoveLegacy(path)
-			if err != nil {
-				return err
-			}
-			if old != "" {
-				fmt.Fprintf(notice, "haven: moved your hosts from %s to %s\n", old, path)
-			}
-		}
 	}
-	_, statErr := os.Stat(path)
-	fresh := errors.Is(statErr, os.ErrNotExist)
-
 	s, err := store.Open(path)
 	if err != nil {
 		return err
 	}
 	a.store = s
-	if fresh {
-		return a.importLegacy(notice)
-	}
-	return nil
-}
-
-func (a *app) importLegacy(notice interface{ Write([]byte) (int, error) }) error {
-	src := legacy.DefaultPath()
-	f, err := os.Open(src)
-	if errors.Is(err, os.ErrNotExist) {
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-	hosts, err := legacy.Parse(f)
-	f.Close()
-	if err != nil {
-		return fmt.Errorf("reading %s: %w", src, err)
-	}
-	ctx := context.Background()
-	n := 0
-	for _, h := range hosts {
-		if _, err := a.store.Create(ctx, h); err == nil {
-			n++
-		}
-	}
-	if err := os.Rename(src, src+".bak"); err != nil {
-		return err
-	}
-	fmt.Fprintf(notice, "haven: imported %d hosts from %s (original kept as %s.bak)\n", n, src, src)
 	return nil
 }
 
@@ -331,7 +286,7 @@ func (a *app) exec(ctx context.Context, h store.Host) error {
 }
 
 func (a *app) completeHosts(cmd *cobra.Command, args []string, toComplete string) ([]cobra.Completion, cobra.ShellCompDirective) {
-	if err := a.open(cmd.ErrOrStderr()); err != nil {
+	if err := a.open(); err != nil {
 		return nil, cobra.ShellCompDirectiveError
 	}
 	hosts, err := a.store.List(cmd.Context(), "")

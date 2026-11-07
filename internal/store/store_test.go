@@ -3,7 +3,6 @@ package store
 import (
 	"context"
 	"errors"
-	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -23,7 +22,7 @@ func TestCRUD(t *testing.T) {
 	ctx := context.Background()
 	s := openTemp(t)
 
-	h, err := s.Create(ctx, Host{Name: "appelenburg.nl", User: "web", Hostname: "nuthatch.example", Tags: []string{"WordPress, prod", "prod"}})
+	h, err := s.Create(ctx, Host{Name: "acme-shop.example", User: "web", Hostname: "nuthatch.example", Tags: []string{"WordPress, prod", "prod"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -33,13 +32,13 @@ func TestCRUD(t *testing.T) {
 	if want := []string{"prod", "wordpress"}; !reflect.DeepEqual(h.Tags, want) {
 		t.Fatalf("tags = %v, want %v", h.Tags, want)
 	}
-	for _, dup := range []string{"appelenburg.nl", "APPELENBURG.NL"} {
+	for _, dup := range []string{"acme-shop.example", "ACME-SHOP.EXAMPLE"} {
 		if _, err := s.Create(ctx, Host{Name: dup, Hostname: "x"}); err == nil {
 			t.Fatalf("expected duplicate name error for %q", dup)
 		}
 	}
 
-	got, err := s.Get(ctx, "Appelenburg.NL")
+	got, err := s.Get(ctx, "Acme-Shop.Example")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,7 +63,7 @@ func TestCRUD(t *testing.T) {
 	if err := s.MarkUsed(ctx, got.ID); err != nil {
 		t.Fatal(err)
 	}
-	got, _ = s.Get(ctx, "appelenburg.nl")
+	got, _ = s.Get(ctx, "acme-shop.example")
 	if got.UseCount != 1 || got.LastUsedAt == nil {
 		t.Fatalf("usage not recorded: %+v", got)
 	}
@@ -81,7 +80,7 @@ func TestCRUD(t *testing.T) {
 	if err := s.Delete(ctx, got.ID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.Get(ctx, "appelenburg.nl"); !errors.Is(err, ErrNotFound) {
+	if _, err := s.Get(ctx, "acme-shop.example"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("Get after delete: %v", err)
 	}
 }
@@ -129,67 +128,11 @@ func TestDirs(t *testing.T) {
 	}
 }
 
-func TestMoveLegacy(t *testing.T) {
-	ctx := context.Background()
-	cfg := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", cfg)
-	t.Setenv("HAVEN_DB", "")
-	t.Setenv("ROOTNET_DB", "")
-
-	// A database left by the old name, with a host in it.
-	old := filepath.Join(cfg, "rootnet", "rootnet.db")
-	s, err := Open(old)
-	if err != nil {
-		t.Fatal(err)
-	}
-	s.Create(ctx, Host{Name: "appelenburg.nl", Hostname: "srv"})
-	s.Close()
-
-	path, _ := DefaultPath()
-	if path != filepath.Join(cfg, "haven", "haven.db") {
-		t.Fatalf("DefaultPath = %s", path)
-	}
-	moved, err := MoveLegacy(path)
-	if err != nil || moved != old {
-		t.Fatalf("MoveLegacy = %q, %v", moved, err)
-	}
-	s, err = Open(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := s.Get(ctx, "appelenburg.nl"); err != nil {
-		t.Errorf("host not carried over: %v", err)
-	}
-	s.Close()
-	if _, err := os.Stat(filepath.Join(cfg, "rootnet")); !os.IsNotExist(err) {
-		t.Error("empty old directory not removed")
-	}
-	if again, err := MoveLegacy(path); again != "" || err != nil {
-		t.Errorf("second MoveLegacy = %q, %v", again, err)
-	}
-}
-
-func TestMoveLegacyKeepsExisting(t *testing.T) {
-	cfg := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", cfg)
-	os.MkdirAll(filepath.Join(cfg, "rootnet"), 0o700)
-	os.WriteFile(filepath.Join(cfg, "rootnet", "rootnet.db"), []byte("old"), 0o600)
-	path := filepath.Join(cfg, "haven", "haven.db")
-	os.MkdirAll(filepath.Dir(path), 0o700)
-	os.WriteFile(path, []byte("new"), 0o600)
-	if moved, _ := MoveLegacy(path); moved != "" {
-		t.Error("must not replace an existing haven database")
-	}
-	if b, _ := os.ReadFile(path); string(b) != "new" {
-		t.Error("existing database changed")
-	}
-}
-
 func TestEnvPath(t *testing.T) {
 	t.Setenv("HAVEN_DB", "")
-	t.Setenv("ROOTNET_DB", "/old.db")
-	if p, _ := DefaultPath(); p != "/old.db" {
-		t.Errorf("ROOTNET_DB fallback: %s", p)
+	t.Setenv("XDG_CONFIG_HOME", "/cfg")
+	if p, _ := DefaultPath(); p != filepath.Join("/cfg", "haven", "haven.db") {
+		t.Errorf("XDG_CONFIG_HOME: %s", p)
 	}
 	t.Setenv("HAVEN_DB", "/new.db")
 	if p, _ := DefaultPath(); p != "/new.db" {

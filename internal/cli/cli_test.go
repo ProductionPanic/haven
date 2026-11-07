@@ -26,7 +26,6 @@ func run(t *testing.T, db string, args ...string) (string, error) {
 
 func TestCommands(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("HOME", dir) // no legacy file to import
 	db := filepath.Join(dir, "haven.db")
 
 	mustRun := func(args ...string) string {
@@ -38,27 +37,27 @@ func TestCommands(t *testing.T) {
 		return out
 	}
 
-	mustRun("add", "appelenburg.nl", "web@nuthatch", "--path", "/var/www", "-t", "wp")
+	mustRun("add", "acme-shop.example", "web@web1", "--path", "/var/www", "-t", "wp")
 	mustRun("add", "other.nl", "srv2", "-p", "2222")
-	mustRun("add", "ssh", "handelsvo_cb@gradual-giraffe.sys.rootnet.io")
-	mustRun("add", "ssh", "handelsvo_cb@other-giraffe.sys.rootnet.io")
+	mustRun("add", "ssh", "deploy@web2.example.com")
+	mustRun("add", "ssh", "deploy@other-web2.example.com")
 
-	if got := mustRun("get", "handelsvo_cb"); got != "handelsvo_cb@gradual-giraffe.sys.rootnet.io" {
+	if got := mustRun("get", "deploy"); got != "deploy@web2.example.com" {
 		t.Errorf("get after add ssh = %q", got)
 	}
-	if got := mustRun("get", "handelsvo_cb@other"); got != "handelsvo_cb@other-giraffe.sys.rootnet.io" {
+	if got := mustRun("get", "deploy@other"); got != "deploy@other-web2.example.com" {
 		t.Errorf("get after add ssh with taken name = %q", got)
 	}
-	mustRun("rm", "handelsvo_cb@other", "--yes")
-	mustRun("rm", "handelsvo_cb", "--yes")
+	mustRun("rm", "deploy@other", "--yes")
+	mustRun("rm", "deploy", "--yes")
 
-	if got := mustRun("get", "appel"); got != "web@nuthatch" {
+	if got := mustRun("get", "acme"); got != "web@web1" {
 		t.Errorf("get = %q", got)
 	}
 	if got := mustRun("get", "other", "--format", "{{.Hostname}}:{{.Port}}"); got != "srv2:2222\n" {
 		t.Errorf("get --format = %q", got)
 	}
-	if got := mustRun("ls", "--tag", "wp"); !strings.Contains(got, "appelenburg.nl") || strings.Contains(got, "other.nl") {
+	if got := mustRun("ls", "--tag", "wp"); !strings.Contains(got, "acme-shop.example") || strings.Contains(got, "other.nl") {
 		t.Errorf("ls --tag wp:\n%s", got)
 	}
 
@@ -84,26 +83,8 @@ func TestCommands(t *testing.T) {
 	if _, err := run(t, db2, "import", file); err != nil {
 		t.Fatal(err)
 	}
-	if out, _ := run(t, db2, "ls"); !strings.Contains(out, "renamed.nl") || !strings.Contains(out, "appelenburg.nl") {
+	if out, _ := run(t, db2, "ls"); !strings.Contains(out, "renamed.nl") || !strings.Contains(out, "acme-shop.example") {
 		t.Errorf("import into fresh db:\n%s", out)
-	}
-}
-
-func TestLegacyAutoImport(t *testing.T) {
-	dir := t.TempDir()
-	t.Setenv("HOME", dir)
-	legacyFile := filepath.Join(dir, "rootnet_hosts.txt")
-	os.WriteFile(legacyFile, []byte("a.nl | u@a\nb.nl | u@b\n"), 0o600)
-
-	out, err := run(t, filepath.Join(dir, "haven.db"), "ls")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(out, "a.nl") || !strings.Contains(out, "b.nl") {
-		t.Errorf("hosts not imported:\n%s", out)
-	}
-	if _, err := os.Stat(legacyFile + ".bak"); err != nil {
-		t.Errorf("legacy file not renamed: %v", err)
 	}
 }
 

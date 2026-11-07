@@ -17,7 +17,7 @@ var now = time.Date(2026, 10, 2, 12, 0, 0, 0, time.UTC)
 func testHosts() []store.Host {
 	used := now.Add(-3 * time.Minute)
 	return []store.Host{
-		{ID: 1, Name: "appelenburg.nl", User: "web", Hostname: "monotone", Port: 22, Environment: "staging",
+		{ID: 1, Name: "acme-shop.example", User: "web", Hostname: "monotone", Port: 22, Environment: "staging",
 			Tags: []string{"client-a", "wordpress"}, Notes: "DB creds in 1Password", UseCount: 1, LastUsedAt: &used},
 		{ID: 2, Name: "formhost", User: "deploy", Hostname: "10.0.0.5", Port: 2022, RemotePath: "/srv/app",
 			Environment: "production", Tags: []string{"wp"}},
@@ -86,8 +86,8 @@ func selectedName(m Model) string {
 
 func TestNavigationAndDetail(t *testing.T) {
 	m := newModel(t)
-	// appelenburg was used recently, so frecency puts it first.
-	if got := selectedName(m); got != "appelenburg.nl" {
+	// acme-shop was used recently, so frecency puts it first.
+	if got := selectedName(m); got != "acme-shop.example" {
 		t.Fatalf("initial selection %q", got)
 	}
 	m, _ = press(m, "j")
@@ -215,7 +215,7 @@ func TestCheckStatus(t *testing.T) {
 		t.Error("host still marked as checking")
 	}
 	// The result survives filtering, which rebuilds the rows from all hosts.
-	m, _ = press(m, "/", "a", "p", "p", "e", "l")
+	m, _ = press(m, "/", "a", "c", "m", "e")
 	if got := plain(m); !strings.Contains(got, "failed · 2m ago") {
 		t.Errorf("check lost after filtering:\n%s", got)
 	}

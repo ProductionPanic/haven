@@ -1,6 +1,14 @@
-.idea
-rootnet-cli
-/main
-/rootnet
-.DS_Store
+# Build output
 /haven
+/haven.exe
+/dist/
+
+# Editors and OS files
+.idea/
+.vscode/
+.DS_Store
+
+# Local haven databases (e.g. a demo database)
+*.db
+*.db-shm
+*.db-wal

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -27,7 +28,7 @@ func newEnv(t *testing.T) *env {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
 	e := &env{t: t, dir: dir, db: filepath.Join(dir, "haven.db")}
-	e.ok("add", "appel", "web@appel.test", "--no-check", "--path", "/var/www", "-t", "wp")
+	e.ok("add", "acme", "web@acme.test", "--no-check", "--path", "/var/www", "-t", "wp")
 	e.ok("add", "prod", "web@prod.test", "--no-check", "-e", "production")
 	e.ok("add", "prod2", "web@prod2.test", "--no-check", "-e", "production")
 	return e
@@ -162,7 +163,7 @@ func TestFileCreateGuards(t *testing.T) {
 
 	e.fails("is a directory", "file", "create", e.path("sub"), "--content", "x", "--force")
 	if err := os.Symlink(e.path("s.txt"), e.path("link")); err != nil {
-		t.Fatal(err)
+		t.Skipf("symlinks not available: %v", err)
 	}
 	e.fails("symlink", "file", "create", e.path("link"), "--content", "x", "--force")
 	e.fails("symlink", "file", "modify", e.path("link"), "--append", "--content", "x")
@@ -208,7 +209,8 @@ func TestFileModifyGuards(t *testing.T) {
 	if got := e.read("m.txt"); got != "" {
 		t.Errorf("emptied: %q", got)
 	}
-	if fi, _ := os.Stat(f); fi.Mode().Perm() != 0o600 {
+	// Windows has no Unix permission bits to keep.
+	if fi, _ := os.Stat(f); runtime.GOOS != "windows" && fi.Mode().Perm() != 0o600 {
 		t.Errorf("mode not kept: %v", fi.Mode())
 	}
 
@@ -302,7 +304,8 @@ func TestFileDelete(t *testing.T) {
 		t.Error("keep.txt was deleted although the command failed")
 	}
 	e.fails("refusing to delete the home directory", "file", "delete", "--recursive", "~")
-	e.fails("refusing to delete /", "file", "delete", "--recursive", "/")
+	root, _ := filepath.Abs("/") // C:\ on Windows
+	e.fails("refusing to delete "+root, "file", "delete", "--recursive", "/")
 
 	out := e.ok("file", "delete", "--recursive", "--json", e.path("d"))
 	var res deleteResult
@@ -318,7 +321,7 @@ func TestFileDelete(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := os.Symlink(e.path("target"), e.path("ln")); err != nil {
-		t.Fatal(err)
+		t.Skipf("symlinks not available: %v", err)
 	}
 	e.ok("file", "delete", e.path("ln"))
 	if _, err := os.Stat(e.path("target")); err != nil {
@@ -332,7 +335,7 @@ func TestFileOnHost(t *testing.T) {
 	if err := os.Mkdir(remote, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	f := "appel:" + filepath.Join(remote, "site.txt")
+	f := "acme:" + filepath.Join(remote, "site.txt")
 
 	e.ok("file", "create", f, "--content", "hello world\n")
 	if got := e.read("remote/site.txt"); got != "hello world\n" {
@@ -343,16 +346,16 @@ func TestFileOnHost(t *testing.T) {
 	}
 	out := e.ok("file", "modify", f, "--old", "world", "--new", "haven", "--json")
 	var res changeResult
-	if err := json.Unmarshal([]byte(out), &res); err != nil || res.Host != "appel" || res.Replacements != 1 {
+	if err := json.Unmarshal([]byte(out), &res); err != nil || res.Host != "acme" || res.Replacements != 1 {
 		t.Errorf("result = %+v %v", res, err)
 	}
 	if got := e.read("remote/site.txt"); got != "hello haven\n" {
 		t.Errorf("remote modify = %q", got)
 	}
-	if out := e.ok("file", "list", "appel:"+remote); !strings.Contains(out, "site.txt") {
+	if out := e.ok("file", "list", "acme:"+remote); !strings.Contains(out, "site.txt") {
 		t.Errorf("remote list:\n%s", out)
 	}
-	if out := e.ok("file", "modify", f, "--append", "--content", "!"); !strings.Contains(out, "appel:") {
+	if out := e.ok("file", "modify", f, "--append", "--content", "!"); !strings.Contains(out, "acme:") {
 		t.Errorf("output does not name the host: %q", out)
 	}
 	e.ok("file", "delete", f)
@@ -394,7 +397,7 @@ func TestFileAmbiguousHost(t *testing.T) {
 
 func TestServersCommand(t *testing.T) {
 	e := newEnv(t)
-	e.ok("check", "appel")
+	e.ok("check", "acme")
 
 	var all []serverInfo
 	if err := json.Unmarshal([]byte(e.ok("servers")), &all); err != nil {
@@ -407,22 +410,22 @@ func TestServersCommand(t *testing.T) {
 	for _, s := range all {
 		by[s.Name] = s
 	}
-	appel, prod := by["appel"], by["prod"]
-	if appel.Target != "web@appel.test" || appel.Port != 22 || appel.RemotePath != "/var/www" ||
-		appel.FilePrefix != "appel:" || appel.Production || len(appel.Tags) != 1 {
-		t.Errorf("appel = %+v", appel)
+	acme, prod := by["acme"], by["prod"]
+	if acme.Target != "web@acme.test" || acme.Port != 22 || acme.RemotePath != "/var/www" ||
+		acme.FilePrefix != "acme:" || acme.Production || len(acme.Tags) != 1 {
+		t.Errorf("acme = %+v", acme)
 	}
-	if appel.SSHOK == nil || !*appel.SSHOK || appel.CheckedAt == nil {
-		t.Errorf("appel check = %+v", appel)
+	if acme.SSHOK == nil || !*acme.SSHOK || acme.CheckedAt == nil {
+		t.Errorf("acme check = %+v", acme)
 	}
 	if !prod.Production || prod.SSHOK != nil {
 		t.Errorf("prod = %+v", prod)
 	}
 
-	if out := e.ok("servers", "--tag", "wp"); !strings.Contains(out, `"appel"`) || strings.Contains(out, `"prod"`) {
+	if out := e.ok("servers", "--tag", "wp"); !strings.Contains(out, `"acme"`) || strings.Contains(out, `"prod"`) {
 		t.Errorf("--tag:\n%s", out)
 	}
-	if out := e.ok("servers", "appel"); strings.Contains(out, `"prod"`) {
+	if out := e.ok("servers", "acme"); strings.Contains(out, `"prod"`) {
 		t.Errorf("query:\n%s", out)
 	}
 	if out := e.ok("servers", "nothing-like-this"); strings.TrimSpace(out) != "[]" {

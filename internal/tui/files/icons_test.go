@@ -49,18 +49,6 @@ func TestIconsFromEnv(t *testing.T) {
 	}
 }
 
-func TestIconsFromLegacyEnv(t *testing.T) {
-	t.Setenv("HAVEN_ICONS", "")
-	t.Setenv("ROOTNET_ICONS", "off")
-	if IconsFromEnv() {
-		t.Error("ROOTNET_ICONS=off should still be honoured")
-	}
-	t.Setenv("HAVEN_ICONS", "on")
-	if !IconsFromEnv() {
-		t.Error("HAVEN_ICONS should win over ROOTNET_ICONS")
-	}
-}
-
 func TestRowIconsKeepAlignment(t *testing.T) {
 	th := theme.New(true)
 	for _, icons := range []bool{true, false} {
@@ -81,9 +69,9 @@ func TestRowIconsKeepAlignment(t *testing.T) {
 }
 
 func TestLongTitleStaysOnOneLine(t *testing.T) {
-	p := newPane("bengelmedia.nl")
+	p := newPane("example.com")
 	p.fs = vfs.LocalFS{}
-	p.cwd = "/projects/bengelmed_da/public_html/wp-content/themes/bengel/assets/build"
+	p.cwd = "/projects/example_com/public_html/wp-content/themes/example/assets/build"
 	p.width, p.height = 40, 6
 	out := ansi.Strip(p.view(theme.New(true), true, time.Now()))
 	lines := strings.Split(out, "\n")
