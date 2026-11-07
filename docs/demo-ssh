@@ -1,0 +1,27 @@
+#!/bin/sh
+# Stand-in for ssh while recording the demos, so the fictional hosts from
+# docs/demo-hosts.sh don't all show a failed login check. Put it on $PATH
+# as "ssh":
+#   mkdir -p /tmp/demo-bin && ln -sf "$PWD/docs/demo-ssh" /tmp/demo-bin/ssh
+#   export PATH=/tmp/demo-bin:$PATH
+# Login checks (ssh -o BatchMode=yes ... true) of the fictional hosts pass,
+# except mailserver, which shows what a failure looks like. Everything else
+# goes to the real ssh ($REAL_SSH, default /usr/bin/ssh).
+last=""
+for a in "$@"; do last=$a; done
+case " $* " in
+*" BatchMode=yes "*)
+	if [ "$last" = true ]; then
+		case " $* " in
+		*mx1.example.org*)
+			echo "Permission denied (publickey)." >&2
+			exit 255
+			;;
+		*.example\ * | *.example.org\ * | *.example.net\ * | *.local\ * | *10.0.4.12\ *)
+			exit 0
+			;;
+		esac
+	fi
+	;;
+esac
+exec "${REAL_SSH:-/usr/bin/ssh}" "$@"
