@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/ProductionPanic/haven/v2/internal/exchange"
-	"github.com/ProductionPanic/haven/v2/internal/legacy"
+	"github.com/ProductionPanic/haven/v2/internal/hostlist"
 	"github.com/ProductionPanic/haven/v2/internal/store"
 )
 
@@ -18,17 +18,16 @@ func (a *app) importCmd() *cobra.Command {
 	var overwrite bool
 	var format string
 	cmd := &cobra.Command{
-		Use:   "import [file]",
-		Short: "Import hosts from TOML or the legacy rootnet_hosts.txt format",
+		Use:   "import <file>",
+		Short: `Import hosts from TOML or a plain-text "name | user@host" list`,
 		Long: `Import hosts from a file ("-" for stdin). The format is picked from the
-extension (.toml → TOML, anything else → legacy "name | user@host" lines)
-unless --format is given. Without a file, ~/rootnet_hosts.txt is used.`,
-		Args: cobra.MaximumNArgs(1),
+extension (.toml → TOML, anything else → plain-text "name | user@host"
+lines) unless --format is given. Stdin is read as TOML by default.`,
+		Example: `  haven import hosts.toml
+  haven import --format txt hosts.txt`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			path := legacy.DefaultPath()
-			if len(args) == 1 {
-				path = args[0]
-			}
+			path := args[0]
 			var r io.Reader = cmd.InOrStdin()
 			if path != "-" {
 				f, err := os.Open(path)
@@ -39,7 +38,7 @@ unless --format is given. Without a file, ~/rootnet_hosts.txt is used.`,
 				r = f
 			}
 			if format == "" {
-				format = "legacy"
+				format = "txt"
 				if path == "-" || strings.EqualFold(filepath.Ext(path), ".toml") {
 					format = "toml"
 				}
@@ -49,10 +48,10 @@ unless --format is given. Without a file, ~/rootnet_hosts.txt is used.`,
 			switch format {
 			case "toml":
 				hosts, err = exchange.ReadTOML(r)
-			case "legacy", "txt":
-				hosts, err = legacy.Parse(r)
+			case "txt":
+				hosts, err = hostlist.Parse(r)
 			default:
-				return fmt.Errorf("unknown format %q (want toml or legacy)", format)
+				return fmt.Errorf("unknown format %q (want toml or txt)", format)
 			}
 			if err != nil {
 				return fmt.Errorf("%s: %w", path, err)
@@ -67,7 +66,7 @@ unless --format is given. Without a file, ~/rootnet_hosts.txt is used.`,
 		},
 	}
 	cmd.Flags().BoolVar(&overwrite, "overwrite", false, "update hosts that already exist")
-	cmd.Flags().StringVar(&format, "format", "", "input format: toml or legacy")
+	cmd.Flags().StringVar(&format, "format", "", "input format: toml or txt")
 	return cmd
 }
 

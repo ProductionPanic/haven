@@ -1,4 +1,4 @@
-package legacy
+package hostlist
 
 import (
 	"strings"
@@ -6,7 +6,7 @@ import (
 )
 
 func TestParse(t *testing.T) {
-	in := `appelenburg.nl | web@monotone-nuthatch.sys.rootnet.io
+	in := `acme-shop.example | web@web1.example.com
 # comment
 
 bare | justahost
@@ -20,7 +20,7 @@ broken line
 	if len(hosts) != 2 {
 		t.Fatalf("got %d hosts: %+v", len(hosts), hosts)
 	}
-	if h := hosts[0]; h.Name != "appelenburg.nl" || h.User != "web" || h.Hostname != "monotone-nuthatch.sys.rootnet.io" {
+	if h := hosts[0]; h.Name != "acme-shop.example" || h.User != "web" || h.Hostname != "web1.example.com" {
 		t.Errorf("unexpected first host %+v", h)
 	}
 	if h := hosts[1]; h.User != "" || h.Hostname != "justahost" {

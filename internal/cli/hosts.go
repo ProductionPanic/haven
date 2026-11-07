@@ -30,9 +30,9 @@ func (a *app) getCmd() *cobra.Command {
 		Short: "Print user@host for a host",
 		Long: `Print the ssh destination of a host. The picker (if needed) is drawn on
 stderr, so only the result ends up on stdout.`,
-		Example: `  ssh $(haven get appel)
-  haven get appel --format '{{.User}}@{{.Hostname}}:{{.Port}}'
-  haven get appel --json | jq .remote_path`,
+		Example: `  ssh $(haven get acme)
+  haven get acme --format '{{.User}}@{{.Hostname}}:{{.Port}}'
+  haven get acme --json | jq .remote_path`,
 		ValidArgsFunction: a.completeHosts,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var tmpl *template.Template
@@ -218,8 +218,8 @@ away; otherwise an interactive form opens.
 named after the user (or the hostname when there is none) unless --name is
 given.`,
 		Example: `  haven add
-  haven add appelenburg.nl web@nuthatch.sys.rootnet.io --path /var/www/site -t wordpress -e production
-  haven add ssh web@nuthatch.sys.rootnet.io -p 2222`,
+  haven add acme-shop.example web@web1.example.com --path /var/www/site -t wordpress -e production
+  haven add ssh web@web1.example.com -p 2222`,
 		Args: cobra.MaximumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var h store.Host
@@ -287,7 +287,7 @@ func (a *app) editCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:               "edit <query>",
 		Short:             "Edit a host (interactive form unless field flags are given)",
-		Example:           "  haven edit appel\n  haven edit appel --port 2222 --tag wordpress,prod",
+		Example:           "  haven edit acme\n  haven edit acme --port 2222 --tag wordpress,prod",
 		Args:              cobra.MinimumNArgs(1),
 		ValidArgsFunction: a.completeHosts,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -371,7 +371,7 @@ func (a *app) rmCmd() *cobra.Command {
 }
 
 func (a *app) completeTags(cmd *cobra.Command, _ []string, _ string) ([]cobra.Completion, cobra.ShellCompDirective) {
-	if err := a.open(cmd.ErrOrStderr()); err != nil {
+	if err := a.open(); err != nil {
 		return nil, cobra.ShellCompDirectiveError
 	}
 	tags, err := a.store.Tags(cmd.Context())

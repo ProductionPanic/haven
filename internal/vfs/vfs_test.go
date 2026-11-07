@@ -49,7 +49,7 @@ func conformance(t *testing.T, f FS) {
 	write(t, f, j(root, "a", "file.txt"), "hello")
 	write(t, f, j(root, ".hidden"), "x")
 	if err := os.Symlink(filepath.Join(root, "a"), filepath.Join(root, "link")); err != nil {
-		t.Fatal(err)
+		t.Skipf("symlinks not available: %v", err)
 	}
 	os.Symlink(filepath.Join(root, "nope"), filepath.Join(root, "broken"))
 

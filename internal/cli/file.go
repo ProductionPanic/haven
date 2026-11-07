@@ -47,11 +47,11 @@ prompts, host queries must match exactly one host, and every command takes
 
 Writes are atomic (a half-written file never replaces the old one). Changing
 files on a host whose environment is "production" needs --allow-production.`,
-		Example: `  haven file list appel:/var/www/site
-  haven file read appel:wp-config.php --offset 1 --limit 40
-  echo 'hello' | haven file create appel:/tmp/hello.txt
-  haven file modify appel:/tmp/hello.txt --old hello --new goodbye
-  haven file delete appel:/tmp/hello.txt`,
+		Example: `  haven file list acme:/var/www/site
+  haven file read acme:wp-config.php --offset 1 --limit 40
+  echo 'hello' | haven file create acme:/tmp/hello.txt
+  haven file modify acme:/tmp/hello.txt --old hello --new goodbye
+  haven file delete acme:/tmp/hello.txt`,
 	}
 	cmd.AddCommand(
 		a.fileListCmd(),
@@ -149,7 +149,7 @@ func (a *app) fileListCmd() *cobra.Command {
 		Aliases:           []string{"ls"},
 		Short:             "List a directory (default: the current directory)",
 		Long:              "List a directory, directories first. Hidden files are included.",
-		Example:           "  haven file list\n  haven file list appel:/var/www/site --json",
+		Example:           "  haven file list\n  haven file list acme:/var/www/site --json",
 		Args:              cobra.MaximumNArgs(1),
 		ValidArgsFunction: a.completeLocations,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -275,8 +275,8 @@ func (a *app) fileReadCmd() *cobra.Command {
 files are cut off after --max-bytes (default 1 MiB); a note on stderr (or
 "truncated" in --json) tells you where to continue with --offset. Binary
 files are refused.`,
-		Example: `  haven file read appel:/etc/hostname
-  haven file read appel:/var/log/nginx/error.log --offset 200 --limit 50 --numbered
+		Example: `  haven file read acme:/etc/hostname
+  haven file read acme:/var/log/nginx/error.log --offset 200 --limit 50 --numbered
   haven file read ./config.toml --json`,
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: a.completeLocations,
@@ -371,11 +371,11 @@ the file already exists unless --force is given, and when the parent
 directory is missing unless --parents is given. To change part of an existing
 file use "haven file modify".`,
 		Example: `  haven file create ./notes.txt --content 'hello'
-  haven file create appel:/var/www/site/robots.txt <<'EOF'
+  haven file create acme:/var/www/site/robots.txt <<'EOF'
   User-agent: *
   Disallow: /private/
   EOF
-  haven file create --parents appel:backups/2026/readme.txt --content 'x'`,
+  haven file create --parents acme:backups/2026/readme.txt --content 'x'`,
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: a.completeLocations,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -488,8 +488,8 @@ func (a *app) fileModifyCmd() *cobra.Command {
   --overwrite             replace the whole file with the content
 
 Permissions are kept. Binary files and files over 10 MiB are refused.`,
-		Example: `  haven file modify appel:wp-config.php --old "WP_DEBUG', false" --new "WP_DEBUG', true"
-  echo 'Disallow: /tmp/' | haven file modify appel:/var/www/site/robots.txt --append
+		Example: `  haven file modify acme:wp-config.php --old "WP_DEBUG', false" --new "WP_DEBUG', true"
+  echo 'Disallow: /tmp/' | haven file modify acme:/var/www/site/robots.txt --append
   haven file modify ./notes.txt --overwrite --content 'fresh start'`,
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: a.completeLocations,
@@ -618,8 +618,8 @@ func (a *app) fileDeleteCmd() *cobra.Command {
 Every location is checked before anything is deleted, so one mistake doesn't
 leave a half-done job. The filesystem root and the home directory are never
 deleted. This does not touch haven's host list; for that use "haven rm".`,
-		Example: `  haven file delete appel:/tmp/old.log
-  haven file delete --recursive appel:/tmp/build-cache
+		Example: `  haven file delete acme:/tmp/old.log
+  haven file delete --recursive acme:/tmp/build-cache
   haven file delete --ignore-missing ./a.txt ./b.txt`,
 		Args:              cobra.MinimumNArgs(1),
 		ValidArgsFunction: a.completeLocations,

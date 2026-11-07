@@ -13,7 +13,7 @@ haven servers [query] [--tag TAG]
 Prints a JSON array. Fields that matter:
 
 - `name`: the server's name. Use it as `name:` in front of a path.
-- `file_prefix`: that prefix, ready to paste (`appel:`).
+- `file_prefix`: that prefix, ready to paste (`acme:`).
 - `production`: true for production hosts. Changing files there is guarded
   (see "Safety").
 - `remote_path`: the site or project directory on the server, when set.
@@ -26,8 +26,8 @@ lists them; use the exact `name` instead.
 
 ## 2. Address files: `host:path` or a local path
 
-- `appel:/var/www/site/index.php`: absolute path on the server `appel`.
-- `appel:wp-config.php`: relative paths start in the login directory
+- `acme:/var/www/site/index.php`: absolute path on the server `acme`.
+- `acme:wp-config.php`: relative paths start in the login directory
   (`~` and `~/x` work too).
 - `./notes.txt`, `/tmp/x`, `~/x`: local paths. Anything without a `host:`
   prefix is local.
@@ -40,14 +40,14 @@ they print the reason to stderr and exit with status 1.
 ### List a directory
 
 ```
-haven file list appel:/var/www/site [--json]
+haven file list acme:/var/www/site [--json]
 ```
 
 ### Read a file
 
 ```
-haven file read appel:/var/www/site/wp-config.php
-haven file read appel:/var/log/app.log --offset 200 --limit 50 --numbered
+haven file read acme:/var/www/site/wp-config.php
+haven file read acme:/var/log/app.log --offset 200 --limit 50 --numbered
 ```
 
 Prints the content only (with `--json`: path, size, `start_line`, `end_line`,
@@ -57,8 +57,8 @@ which `--offset` to continue from. Binary files are refused.
 ### Create a file
 
 ```
-haven file create appel:/tmp/hello.txt --content 'hello'
-haven file create appel:/var/www/site/robots.txt <<'EOF'
+haven file create acme:/tmp/hello.txt --content 'hello'
+haven file create acme:/var/www/site/robots.txt <<'EOF'
 User-agent: *
 Disallow: /private/
 EOF
@@ -75,10 +75,10 @@ Pick exactly one mode:
 
 ```
 # replace text: --old must occur exactly once (or pass --all)
-haven file modify appel:wp-config.php --old "'WP_DEBUG', false" --new "'WP_DEBUG', true"
+haven file modify acme:wp-config.php --old "'WP_DEBUG', false" --new "'WP_DEBUG', true"
 
 # append (content from --content or stdin)
-echo 'Disallow: /tmp/' | haven file modify appel:/var/www/site/robots.txt --append
+echo 'Disallow: /tmp/' | haven file modify acme:/var/www/site/robots.txt --append
 
 # replace the whole file
 haven file modify ./notes.txt --overwrite --content 'fresh start'
@@ -92,8 +92,8 @@ surrounding lines if it must be unique.
 ### Delete
 
 ```
-haven file delete appel:/tmp/old.log
-haven file delete --recursive appel:/tmp/build-cache
+haven file delete acme:/tmp/old.log
+haven file delete --recursive acme:/tmp/build-cache
 ```
 
 Directories need `--recursive`. All paths are checked before anything is
@@ -118,16 +118,16 @@ use it unless the user asks.)
 
 **Edit a setting on a server**
 
-1. `haven servers appel` to confirm the name and whether it is production.
-2. `haven file read appel:/var/www/site/.env --numbered` to see the file.
-3. `haven file modify appel:/var/www/site/.env --old 'APP_DEBUG=true' --new 'APP_DEBUG=false'`
-4. `haven file read appel:/var/www/site/.env` to verify.
+1. `haven servers acme` to confirm the name and whether it is production.
+2. `haven file read acme:/var/www/site/.env --numbered` to see the file.
+3. `haven file modify acme:/var/www/site/.env --old 'APP_DEBUG=true' --new 'APP_DEBUG=false'`
+4. `haven file read acme:/var/www/site/.env` to verify.
 
 **Copy whole files or directories between machines** with `haven cp`:
 
 ```
-haven cp --overwrite ./dump.sql appel:/tmp/
-haven cp appel:/var/www/site/wp-config.php ./backup/
+haven cp --overwrite ./dump.sql acme:/tmp/
+haven cp acme:/var/www/site/wp-config.php ./backup/
 ```
 
 Without `--overwrite`, `--skip`, `--newer` or `--rename`, `cp` skips files that

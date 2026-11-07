@@ -1,6 +1,7 @@
 # Regenerate the file manager demo:  vhs docs/files.tape
 # Same setup as docs/demo.tape (HAVEN_DB seeded by docs/demo-hosts.sh);
-# needs ssh key access to test@productionpanic.com.
+# needs ssh key access to $DEMO_HOST (user@host of a throwaway server with a
+# my-folder/ and an httpdocs/index.html in its login directory).
 Output docs/files.gif
 
 Set Shell "bash"
@@ -13,7 +14,7 @@ Set Theme "Catppuccin Mocha"
 Set TypingSpeed 80ms
 
 Hide
-Type `ssh -o BatchMode=yes test@productionpanic.com rm -f my-folder/release-notes.md my-folder/robots.txt; R=$PWD; rm -rf /tmp/acme-shop && mkdir /tmp/acme-shop && cd /tmp/acme-shop && sh "$R/docs/demo-files.sh" && clear` Enter
+Type `ssh -o BatchMode=yes "$DEMO_HOST" rm -f my-folder/release-notes.md my-folder/robots.txt; R=$PWD; rm -rf /tmp/acme-shop && mkdir /tmp/acme-shop && cd /tmp/acme-shop && sh "$R/docs/demo-files.sh" && clear` Enter
 Wait
 Show
 

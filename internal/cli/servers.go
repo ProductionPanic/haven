@@ -69,7 +69,7 @@ An optional query narrows the list the same way it does for "haven ssh". For
 a table meant for people, use "haven ls".`,
 		Example: `  haven servers
   haven servers --tag wordpress
-  haven servers appel | jq '.[0].file_prefix'`,
+  haven servers acme | jq '.[0].file_prefix'`,
 		ValidArgsFunction: a.completeHosts,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			hosts, err := a.store.List(cmd.Context(), tag)

@@ -155,10 +155,10 @@ start with "/". Transfers go over ssh using the same config as connecting.
 
 Files are written as name.haven-part and renamed when complete, so an
 interrupted copy never leaves a half-written file in place.`,
-		Example: `  haven cp ./dump.sql appel:/tmp/
-  haven cp appel:/var/www/site/wp-config.php .
-  haven cp -r ./theme appel:wp-content/themes/   # directories are always recursive
-  haven cp appel:backup.tar.gz other:/srv/       # host to host`,
+		Example: `  haven cp ./dump.sql acme:/tmp/
+  haven cp acme:/var/www/site/wp-config.php .
+  haven cp -r ./theme acme:wp-content/themes/    # directories are always recursive
+  haven cp acme:backup.tar.gz other:/srv/        # host to host`,
 		Args:              cobra.MinimumNArgs(2),
 		ValidArgsFunction: a.completeLocations,
 		RunE: func(cmd *cobra.Command, args []string) error {

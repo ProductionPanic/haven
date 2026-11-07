@@ -104,7 +104,7 @@ func New(title string, f *Fields, nameTaken func(string) bool) *huh.Form {
 	return huh.NewForm(
 		huh.NewGroup(
 			huh.NewNote().Title(title),
-			huh.NewInput().Title("Name").Placeholder("appelenburg.nl").Value(&f.Name).
+			huh.NewInput().Title("Name").Placeholder("acme-shop.example").Value(&f.Name).
 				Validate(func(s string) error {
 					if err := required("name")(s); err != nil {
 						return err

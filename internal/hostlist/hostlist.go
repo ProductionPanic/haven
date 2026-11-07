@@ -1,24 +1,16 @@
-// Package legacy imports the v1 ~/rootnet_hosts.txt format
-// ("name | user@host" per line).
-package legacy
+// Package hostlist reads plain-text host lists ("name | user@host" per
+// line).
+package hostlist
 
 import (
 	"bufio"
 	"io"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/ProductionPanic/haven/v2/internal/store"
 )
 
-// DefaultPath returns ~/rootnet_hosts.txt.
-func DefaultPath() string {
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, "rootnet_hosts.txt")
-}
-
-// Parse reads hosts from the legacy format. Blank lines, comments (#) and
+// Parse reads a plain-text host list. Blank lines, comments (#) and
 // malformed lines are skipped.
 func Parse(r io.Reader) ([]store.Host, error) {
 	var hosts []store.Host
