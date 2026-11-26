@@ -26,7 +26,13 @@ Go binary with a fuzzy-search TUI, built on your normal `ssh`, so your
 * Optional: a [Nerd Font](https://www.nerdfonts.com) for file icons in the file manager.
 
 ### Install
-Download a binary for your platform from the
+With [Homebrew](https://brew.sh) (macOS and Linux):
+
+```bash
+brew install productionpanic/tap/haven
+```
+
+Or download a binary for your platform from the
 [releases page](https://github.com/ProductionPanic/haven/releases), or build it
 with Go:
 
