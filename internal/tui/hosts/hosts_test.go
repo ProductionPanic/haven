@@ -139,6 +139,25 @@ func TestFilterAndConnect(t *testing.T) {
 	}
 }
 
+func TestEditAfterFiltering(t *testing.T) {
+	m := newModel(t)
+	m, _ = press(m, "/", "o", "t", "h")
+	if v := plain(m); !strings.Contains(v, "esc done") {
+		t.Errorf("filter hint missing:\n%s", v)
+	}
+	m, _ = press(m, "esc")
+	if m.Filtering() || !strings.Contains(plain(m), "1 of 5 hosts") {
+		t.Fatalf("esc should leave the filter and keep it:\n%s", plain(m))
+	}
+	_, msgs := press(m, "e")
+	if len(msgs) != 1 {
+		t.Fatalf("e produced %v", msgs)
+	}
+	if e, ok := msgs[0].(EditMsg); !ok || e.Host.Name != "other.nl" {
+		t.Errorf("e produced %#v", msgs[0])
+	}
+}
+
 func TestTagsAndGrouping(t *testing.T) {
 	m := newModel(t)
 	m, _ = press(m, "t") // client-a

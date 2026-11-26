@@ -430,8 +430,13 @@ func (m Model) View() string {
 	header := title + "  " + t.Faint.Render(info)
 
 	filterLine := m.filter.View()
-	if !m.filter.Focused() && m.filter.Value() == "" {
+	switch {
+	case m.filter.Focused():
+		filterLine += "  " + t.Faint.Render("enter ssh · esc done (keeps filter, enables e/f/d…)")
+	case m.filter.Value() == "":
 		filterLine = t.Faint.Render("/ to filter · t tag · g group")
+	default:
+		filterLine += "  " + t.Faint.Render("/ edit · esc clear")
 	}
 
 	list := m.listView()
