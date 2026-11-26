@@ -87,7 +87,9 @@ name to `reserved()`, so a host can't be given a name that collides with it
 
 Pushing a `v*` tag (for example `v2.8.0`) builds binaries for Linux, macOS and
 Windows with [GoReleaser](https://goreleaser.com) and attaches them to a
-GitHub release.
+GitHub release. It also updates the `haven` cask in
+[ProductionPanic/homebrew-tap](https://github.com/ProductionPanic/homebrew-tap),
+using the `TAP_DEPLOY_KEY` secret (a deploy key with write access to the tap).
 
 By contributing you agree that your contributions are licensed under the
 [MIT License](LICENSE).

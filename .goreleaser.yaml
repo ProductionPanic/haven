@@ -24,3 +24,27 @@ checksum:
 
 changelog:
   use: github
+
+homebrew_casks:
+  - name: haven
+    binaries: [haven]
+    homepage: https://github.com/ProductionPanic/haven
+    description: Find and connect to your servers
+    directory: Casks
+    commit_msg_template: "Update {{ .ProjectName }} to {{ .Tag }}"
+    repository:
+      owner: ProductionPanic
+      name: homebrew-tap
+      branch: main
+      # Pushed with a deploy key that only has write access to the tap.
+      git:
+        url: git@github.com:ProductionPanic/homebrew-tap.git
+        private_key: "{{ .Env.TAP_DEPLOY_KEY }}"
+    hooks:
+      post:
+        # The binaries aren't Apple-signed; clear the quarantine flag so
+        # macOS doesn't block them. Uses Homebrew's install-steps DSL.
+        install_steps: |
+          on_macos do
+            run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ "{{" }}staged_path{{ "}}" }}/haven"], must_succeed: false
+          end
